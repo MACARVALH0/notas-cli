@@ -1,3 +1,11 @@
+# VS Code
+.vscode/
+*.code-workspace
+
+# Pasta de desenvolvimento
+dev/
+data/
+
 # Prerequisites
 *.d
 
@@ -30,10 +38,3 @@
 *.exe
 *.out
 *.app
-
-# VS Code
-.vscode/
-
-# Dev
-dev/
-data/
