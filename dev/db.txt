@@ -1,0 +1,15 @@
+CREATE TABLE keywords
+(
+    id INTEGER PRIMARY KEY,
+    name TEXT
+);
+
+CREATE TABLE results
+(
+    id INTEGER PRIMARY KEY,
+    parent_id INTEGER,
+    content TEXT,
+
+    FOREIGN KEY (parent_id) REFERENCES keywords(id),
+    UNIQUE (id, parent_id)
+);

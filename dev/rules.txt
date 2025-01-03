@@ -1,0 +1,25 @@
+Ações:
+
+NEW     | Entra no modo de escrita de uma nova nota sob a última palavra-chave.
+REWRITE | Entra no modo de reescria de uma nota a partir do seu ID.
+DELETE  | Deleta uma ou mais notas.
+HELP    | Exibe interface de apoio.
+EXIT    | Sai do escopo da palavra-chave.
+
+Uso:
+
+$ NEW <-l>;
+-   `NEW` -> Nova entrada curta, escrita direto no terminal.
+-   `NEW -l` -> Nova entrada longa, abre o bloco de notas.
+
+$ REWRITE [id] <-l>;
+-   `REWRITE 13 -l` -> Nova entrada longa, abre o bloco de notas.
+
+$ DELETE [...id];
+-   `DELETE 12, 15, 26, ...` -> Deleta as notas de ids 12, 15 e 26.
+
+$ HELP;
+-   `HELP` -> Exibe a interface de apoio. Não recebe argumentos.
+
+$ EXIT;
+-   `EXIT` -> Sai do escopo da palavra-chave.
