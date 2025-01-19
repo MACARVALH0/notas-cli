@@ -24,6 +24,27 @@ enum Operation
 };
 
 
+enum class TokenType
+{
+    UNKNOWN,
+    IDENTIFIER,
+    FLAG,
+    STRING
+};
+
+struct Token
+{
+    std::string content;
+    TokenType type;
+
+    int col;
+
+    Token(std::string content, TokenType type, int col)
+    : content(std::move(content)), type(type), col(col) {}
+};
+
+
+
 using str_vector = std::vector<std::string>;
 
 

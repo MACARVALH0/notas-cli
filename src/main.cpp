@@ -24,26 +24,34 @@ void startKeywordInterface(sqlite3* db, std::string& keyword, int id)
 
     if(keyword_id > 0){ entries = getKeywordResults(db, keyword_id); }
     
-    std::cout << "< Iniciando interface para a palavra-chave `" << keyword << "` (" << keyword_id << ").\n";
+    std::cout << "< Iniciando interface para a palavra-chave `" << keyword << "` (id " << keyword_id << ").\n";
 
     bool finished = false;
     do
     {
-        if(!(entries.empty())){ showEntries(entries, keyword);}
+        // Exibe as entradas já existentes antes de cada nova operação realizada.
+        if( !(entries.empty()) ){ showEntries(entries, keyword);}
         
         std::cout << "\nO que fazer?\n> ";
         std::getline(std::cin, command_input);
         std::vector<std::string> tokens = split(command_input, ' ');
         brush(tokens, " ");
+
+        // Para debug: Mostra todos os tokens inseridos.
+        std::cout << "\nTokens:\n";
+        for(std::string& token : tokens){std::cout << token << "\n";} std::cout << "\n";
         
-        const std::string command = getCommand(tokens);
+        const std::string command = getCommand(tokens); // Remove o primeiro token do vetor.
         Operation operation = getOperation(command);
+        
+        bool keyword_exists = keyword_id >= 0;
         
 		switch(operation)
 		{
 			case NEW_op:
 
-                if(keyword_id <= 0)
+                
+                if(!keyword_exists)
                 {
                     std::cerr << "\n< Registrando keyword.\n";
                     keyword_id = db_DefineKeyword(db, keyword);
@@ -52,7 +60,6 @@ void startKeywordInterface(sqlite3* db, std::string& keyword, int id)
                     { std::cout << "Nova palavra-chave registrada sob o id [" << keyword_id << "].\n\n"; }
                     else
                     { std::cerr << "<# Não foi possível registrar a palavra-chave.\n\n"; }
-                    
                 }
 
                 std::cout << "< Iniciando operação de escrita de uma nova entrada.\n";
@@ -65,6 +72,7 @@ void startKeywordInterface(sqlite3* db, std::string& keyword, int id)
                 std::clog << "< Fim da operação de escrita.\n";
                 
             break;
+
 
             case REWRITE_op:
 
@@ -93,6 +101,7 @@ void startKeywordInterface(sqlite3* db, std::string& keyword, int id)
                 if(keyword_id > 0){ entries = getKeywordResults(db, keyword_id); }
 
             break;
+
 
             case DELETE_op:
 
@@ -135,13 +144,15 @@ void startKeywordInterface(sqlite3* db, std::string& keyword, int id)
             break;
 
             default:
+                // Do jeito que o sistema está agora, provavelmente nunca chegaremos aqui, mas vai saber...
                 ShowHelpMenu();
-                // std::cerr << "<# Houve algum erro inesperado durante o processo.\n";
-                // std::cerr << "<# N�o foi poss�vel executar nenhuma opera��o.\n";
 	    }
 
     } while(!finished);
 }
+
+
+
 
 
 int main()
@@ -171,22 +182,24 @@ int main()
 
     try
     {
+        // Retorna um ponteiro inteligente do tipo `db_ptr`
         db = getDatabasePtr();
         std::cout << "Conexão bem sucedida com o banco de dados.\n\n";
     }
 
     catch(const std::runtime_error& err)
     {
+        // Handler para erro em obter o ponteiro para o banco de dados.
         std::cerr << err.what() << '\n';
         system("pause");
         return -1;
     }
 
-    std::cout << "Bem-vindo à aplicação de notas.\n";
-
-
     std::string keyword = ""; // Palavra-chave de busca.
     int keyword_id = -1; // id da palavra-chave no banco.
+
+
+    std::cout << "Bem-vindo à aplicação de notas.\n";
 
 
     while(1)
