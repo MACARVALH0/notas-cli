@@ -21,7 +21,12 @@ build/%.o: src/%.cpp
 build_dir:
 	if not exist build mkdir build
 
+# Regra para executar a aplicação
+run: $(OUT)
+	 ./$(OUT).exe
+
 # Limpar arquivos gerados
 clean:
-	if exist build del /Q build\*.o $(OUT)
+	if exist build/*.o del /Q build\*.o
+	if exist build\main.exe del /Q build\main.exe
 	if exist build rmdir /S /Q build

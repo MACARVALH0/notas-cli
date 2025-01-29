@@ -1,10 +1,14 @@
 #ifndef OP_FUNCTIONS_HPP
 #define OP_FUNCTIONS_HPP
 
+#include <optional>
+#include <functional>
 #include "utils.hpp"
 #include "db_ops.hpp"
 
-void newEntry(sqlite3* db, const str_vector& tokens, int parent_id);
+using def_keyword_function = std::function<void(sqlite3*, const std::string&)>;
+
+void newEntry(sqlite3* db, const token_list& tokens, int parent_id, std::optional<def_keyword_function> = std::nullopt);
 void rewriteEntry(sqlite3* db, const str_vector& tokens, const std::string& entry_txt);
 void DeleteEntry(sqlite3* db, str_vector tokens);
 void ShowHelpMenu();

@@ -14,51 +14,16 @@ void showEntries(entry_map& entries, const std::string& keyword)
 }
 
 
-std::vector<std::string> split(const std::string& txt, char delimiter)
+std::string enumToString(OpTokenType type)
 {
-    std::vector<std::string> tokens;
-
-    auto start = 0UL;
-    auto end = txt.find(delimiter, start);
-
-    while(end != std::string::npos)
+    switch (type)
     {
-        tokens.push_back(txt.substr(start, end-start));
-        start = end+1;
-        end = txt.find(delimiter, start);
-    }
-    tokens.push_back(txt.substr(start));
-
-    return tokens;
-}
-
-
-void brush(str_vector& tokens, const std::string& excludent) // se isso fosse um programa sério eu retornaria algo, provavelmente...
-{
-    const size_t len = tokens.size();
-    str_vector::iterator it = tokens.begin();
-
-    for(int i = 0; i < len; i++)
-    {
-        if(tokens[i] == excludent){ tokens.erase(it+i); } else { continue; }
-    }
-}
-
-
-std::string getCommand(std::vector<std::string>& tokens) // Esse trecho isola a string de comando
-{
-    /*
-        1. Recebe um vetor de strings `tokens`
-        2. Salva um ponteiro `iterator` para o primeiro elemento do vetor (onde deveria estar o comando, na prática)
-        3. Salva o valor apontado por `iterator` em `cmd`
-        4. Apaga do vetor `tokens` o elemento apontado por `iterator`
-        5. Retorna a string `cmd`
-    */
-
-    auto iterator = tokens.begin();
-    std::string cmd = *iterator;
-    tokens.erase(iterator);
-    return cmd;
+        case OpTokenType::UNKNOWN: return "Unknown";
+        case OpTokenType::IDENTIFIER: return "Identifier";
+        case OpTokenType::STRING: return "String";
+        case OpTokenType::FLAG: return "Flag";
+        default: return "Inesperado";
+    };
 }
 
 
@@ -79,87 +44,102 @@ Operation getOperation(std::string token)
 		{"REWRITE", REWRITE_op},
 		{"DELETE", DELETE_op},
 		{"HELP", HELP_op},
-		{"EXIT", EXIT_op},
+		{"EXIT", EXIT_op}
 	};
 
-    std::string op_token = token;
+    std::string op_name = token;
 
-    const size_t len = op_token.length();
+    const size_t len = op_name.length();
     if(len > 10){ return HELP_op; }
 
-    // Convert to uppercase
-    for(int i = 0; i < token.length(); i++)
-    {
-        char c = token[i];
-        if(c >= 97 && c <= 122)
-        {
-            c = c == ' ' ? c : c-32;
-            op_token[i] = c;
-        }
-    }
+    // Conversion to uppercase.
+    for(char& c : op_name) if(c >= 97 && c <= 122) c = c-32;
 
     // Checa se o comando existe.
-    auto op_iterator = op_map.find(op_token);
+    auto op_iterator = op_map.find(op_name);
     if(op_iterator != op_map.end()){ return op_iterator->second; }
-    else{ return HELP_op; }
+    else{ return INVALID_op; }
 }
 
 
 
 
-std::vector<Token> tokenize(std::string line)
+
+std::vector<Token> tokenize(std::string& line)
 {
     std::vector<Token> tokens{};
     int col = 1;
 
     std::vector<char> allowed_punctuation =
-    {',', '.', ' ', '?', '!', ':', ';', '(', ')', '[', ']', '{', '}'};
+    {',', '.', '_', '?', '!', ':', ';', '(', ')', '[', ']', '{', '}'};
 
     auto isalnum = [] (char c) -> bool 
-    { return std::isalnum(c) || c == ' '; };
+    { return std::isalnum(c); };
 
     auto contains = [](std::vector<char> v, char c) -> bool
     { return std::find(v.begin(), v.end(), c) != v.end(); };
 
     std::string buffer = "";
-    TokenType state = TokenType::UNKNOWN;
+    OpTokenType state = OpTokenType::UNKNOWN;
     std::string::iterator char_iterator = line.begin();
     
     while(char_iterator < line.end())
     {
         switch(state)
         {
-            case TokenType::UNKNOWN:
+            case OpTokenType::UNKNOWN:
+
+                if(*char_iterator == ' ')
+                {
+                    // Adição no iterador + reinício do loop para evitar a criação de Token to tipo UNKNOWN
+                    char_iterator++;
+                    continue;
+                }
 
                 if(*char_iterator == '\"')
                 {
-                    state = TokenType::STRING;
+                    state = OpTokenType::STRING;
+                    char_iterator++;
+                    continue;
                 }
 
                 if(isalnum(*char_iterator))
                 {
-                    state = TokenType::IDENTIFIER;
+                    state = OpTokenType::IDENTIFIER;
                     continue;
                 }
 
 
                 if(*char_iterator == '-')
                 {
-                    state = TokenType::FLAG;
+                    state = OpTokenType::FLAG;
                     buffer += *char_iterator;
+                    char_iterator++;
+                    continue;
                 }
-
-                tokens.emplace_back(*char_iterator, state, std::distance(line.begin(), char_iterator));
 
             break;
 
 
-            case TokenType::STRING:
+            case OpTokenType::STRING:
             
                 if(*char_iterator == '\"')
                 {
-                    tokens.emplace_back(buffer, state, std::distance(line.begin(), char_iterator));
-                    state = TokenType::UNKNOWN;
+                    if(!buffer.empty())
+                    {
+                        tokens.emplace_back(buffer, state, std::distance(line.begin(), char_iterator));
+                        buffer.clear();
+                        state = OpTokenType::UNKNOWN;
+
+                        char_iterator++;
+                        continue;
+                    }
+
+                    else
+                    {
+                        state = OpTokenType::UNKNOWN;
+                        continue;
+                    }
                 }
 
                 if(isalnum(*char_iterator) || contains(allowed_punctuation, *char_iterator) || *char_iterator == ' ')
@@ -169,16 +149,16 @@ std::vector<Token> tokenize(std::string line)
 
                 else
                 {
+                    state = OpTokenType::UNKNOWN;
                     tokens.emplace_back(buffer, state, std::distance(line.begin(), char_iterator));
-                    state = TokenType::UNKNOWN;
                     buffer.clear();
                     continue;
                 }
 
             break;
 
-            case TokenType::IDENTIFIER:
-
+            case OpTokenType::IDENTIFIER:
+            
                 if(isalnum(*char_iterator))
                 {
                     buffer += *char_iterator;
@@ -187,7 +167,7 @@ std::vector<Token> tokenize(std::string line)
                 else
                 {
                     tokens.emplace_back(buffer, state, std::distance(line.begin(), char_iterator));
-                    state = TokenType::UNKNOWN;
+                    state = OpTokenType::UNKNOWN;
                     buffer.clear();
                     continue;
                 }
@@ -196,7 +176,7 @@ std::vector<Token> tokenize(std::string line)
 
 
 
-            case TokenType::FLAG:
+            case OpTokenType::FLAG:
                 
                 if(isalnum(*char_iterator))
                 {
@@ -206,7 +186,7 @@ std::vector<Token> tokenize(std::string line)
                 else
                 {
                     tokens.emplace_back(buffer, state, std::distance(line.begin(), char_iterator));
-                    state = TokenType::UNKNOWN;
+                    state = OpTokenType::UNKNOWN;
                     continue;
                 }
 
@@ -216,5 +196,107 @@ std::vector<Token> tokenize(std::string line)
         char_iterator++;
     }
 
+    if(!buffer.empty())
+    {
+        tokens.emplace_back(buffer, OpTokenType::UNKNOWN, std::distance(line.begin(), char_iterator-1));
+    }
+
     return tokens;
+}
+
+
+
+
+flag_map getFlags(token_list& tokens)
+{
+    flag_map flags =
+    {
+        {"-s", ""},
+        {"-l", true}
+    };
+
+    size_t tokens_len = tokens.size();
+    int i = 0;
+
+    while(i < tokens_len)
+    {
+        Token token = tokens[i];
+
+        if(token.type == OpTokenType::FLAG)
+        { // Should only check for flags
+
+            if(token.content == "-s")
+            {
+                try
+                {
+                    i++;
+
+                    if(i > tokens_len && tokens[i].type != OpTokenType::FLAG)
+                    throw std::out_of_range("Não foi possível encontrar um argumento para a flag `-s`.");
+
+                    flags["-s"] = tokens[i].content;
+                }
+
+                catch (const std::range_error & err)
+                {
+                    std::cerr << "<# A flag `-s` exige um argumento.\n" << err.what() << '\n';
+                    flags["-l"] = true;
+                }
+            }
+
+            else if (token.content == "-l")
+            {
+               flags["-l"] = true; 
+            }
+        }
+    }
+
+    return flags;
+    /*
+        -> LEMBRAR
+        Funções importantes para objetos `std::variant<a, b>`:
+
+            1. `std::holds_alternative<T>(variant : value)`:
+            - Verifica o valor armazenado.
+            - Checa se o valor armazenado em `variant` é do tipo T.
+
+            2. `std::get<T>(variant: T value)`:
+            - Acessa o valor mas lança exceção se o tipo estiver incorreto.
+
+            3. `std::get_if<T>(&variant: &value)`:
+            - Acessa o valor de forma mais segura, retornado um nullptr se o tipo estiver incorreto.
+        
+            4. `std::visit(visitor: function, variant: auto value)`:
+            - Aplica uma lógica automaticamente, com base no tipo armazenado.
+    */
+}
+
+
+PROCESS_INFORMATION StartNotepad(std::string& command)
+{
+    STARTUPINFOA startup_info = { sizeof(STARTUPINFO) };
+    PROCESS_INFORMATION process_info; // What we get as an `out` parameter
+
+    ZeroMemory(&startup_info, sizeof(startup_info));
+    startup_info.cb = sizeof startup_info; //  `sizeof` as an operator is possible when its operand is a variable and not a type.
+
+    if( !CreateProcessA
+    (
+        nullptr,        // lpApplicationName
+        &command[0],    // lpCommandLine
+        nullptr,        // lpProccessAttributes
+        nullptr,        // lpThreadAttributes
+        FALSE,          // bInheritHandles
+        0,              // dwCreationFlags
+        nullptr,        // lpEnvironment
+        nullptr,        // lpCurrentDirectory
+        &startup_info,  // lpStartupInfo
+        &process_info   // lpProccessInfo
+    ))
+    {
+        std::cerr << "Não foi possível abrir o bloco de notas.";
+        exit(EXIT_FAILURE);
+    }
+
+    return process_info;
 }
