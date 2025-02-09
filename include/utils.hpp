@@ -3,8 +3,10 @@
 
 #include <iostream>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <variant>
+#include <unordered_set>
 
 #include <fstream>
 #include <algorithm>
@@ -26,7 +28,6 @@ enum Operation
     INVALID_op
 };
 
-
 enum class OpTokenType
 {
     UNKNOWN,
@@ -45,7 +46,6 @@ struct Token
     Token(std::string content, OpTokenType type, int col)
     : content(std::move(content)), type(type), col(col) {}
 };
-
 
 template <typename T>
 bool includes(std::vector<T>& v, T element)
@@ -73,6 +73,8 @@ using str_vector = std::vector<std::string>;
 using token_list = std::vector<Token>;
 using flag_map = std::map<std::string, std::variant<std::string, bool>>;
 
+std::string trim(std::string& text);
+
 std::string enumToString(OpTokenType type);
 
 void showEntries(entry_map& entries, const std::string& keyword);
@@ -80,6 +82,8 @@ void showEntries(entry_map& entries, const std::string& keyword);
 std::string getCommand(std::vector<std::string>& tokens);
 
 Operation getOperation(std::string token);
+
+std::vector<Token> tokenize(std::string& line);
 
 flag_map getFlags(token_list& tokens);
 

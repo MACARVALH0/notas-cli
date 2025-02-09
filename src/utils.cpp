@@ -1,7 +1,5 @@
 #include "utils.hpp"
 
-
-
 void showEntries(entry_map& entries, const std::string& keyword)
 {
     std::cout << "\n";
@@ -12,6 +10,18 @@ void showEntries(entry_map& entries, const std::string& keyword)
     for(const auto& entry : entries)
 	{ std::cout << "- (" << entry.first << ") \"" << entry.second << "\"" << "\n\n"; }
 }
+
+
+std::string trim(const std::string& text)
+{
+    size_t start = text.find_first_not_of(" \t\n\r\f\v");
+    size_t end = text.find_last_not_of(" \t\n\r\f\v");
+
+    std::string trimmed_text = (start == std::string::npos) ? "" : text.substr(start, end - start + 1);
+    
+    return trimmed_text;
+}
+
 
 
 std::string enumToString(OpTokenType type)
@@ -25,6 +35,7 @@ std::string enumToString(OpTokenType type)
         default: return "Inesperado";
     };
 }
+
 
 
 Operation getOperation(std::string token)
@@ -60,151 +71,6 @@ Operation getOperation(std::string token)
     if(op_iterator != op_map.end()){ return op_iterator->second; }
     else{ return INVALID_op; }
 }
-
-
-
-
-
-std::vector<Token> tokenize(std::string& line)
-{
-    std::vector<Token> tokens{};
-    int col = 1;
-
-    std::vector<char> allowed_punctuation =
-    {',', '.', '_', '?', '!', ':', ';', '(', ')', '[', ']', '{', '}'};
-
-    auto isalnum = [] (char c) -> bool 
-    { return std::isalnum(c); };
-
-    auto contains = [](std::vector<char> v, char c) -> bool
-    { return std::find(v.begin(), v.end(), c) != v.end(); };
-
-    std::string buffer = "";
-    OpTokenType state = OpTokenType::UNKNOWN;
-    std::string::iterator char_iterator = line.begin();
-    
-    while(char_iterator < line.end())
-    {
-        switch(state)
-        {
-            case OpTokenType::UNKNOWN:
-
-                if(*char_iterator == ' ')
-                {
-                    // Adição no iterador + reinício do loop para evitar a criação de Token to tipo UNKNOWN
-                    char_iterator++;
-                    continue;
-                }
-
-                if(*char_iterator == '\"')
-                {
-                    state = OpTokenType::STRING;
-                    char_iterator++;
-                    continue;
-                }
-
-                if(isalnum(*char_iterator))
-                {
-                    state = OpTokenType::IDENTIFIER;
-                    continue;
-                }
-
-
-                if(*char_iterator == '-')
-                {
-                    state = OpTokenType::FLAG;
-                    buffer += *char_iterator;
-                    char_iterator++;
-                    continue;
-                }
-
-            break;
-
-
-            case OpTokenType::STRING:
-            
-                if(*char_iterator == '\"')
-                {
-                    if(!buffer.empty())
-                    {
-                        tokens.emplace_back(buffer, state, std::distance(line.begin(), char_iterator));
-                        buffer.clear();
-                        state = OpTokenType::UNKNOWN;
-
-                        char_iterator++;
-                        continue;
-                    }
-
-                    else
-                    {
-                        state = OpTokenType::UNKNOWN;
-                        continue;
-                    }
-                }
-
-                if(isalnum(*char_iterator) || contains(allowed_punctuation, *char_iterator) || *char_iterator == ' ')
-                {
-                    buffer += *char_iterator;
-                }
-
-                else
-                {
-                    state = OpTokenType::UNKNOWN;
-                    tokens.emplace_back(buffer, state, std::distance(line.begin(), char_iterator));
-                    buffer.clear();
-                    continue;
-                }
-
-            break;
-
-            case OpTokenType::IDENTIFIER:
-            
-                if(isalnum(*char_iterator))
-                {
-                    buffer += *char_iterator;
-                }
-
-                else
-                {
-                    tokens.emplace_back(buffer, state, std::distance(line.begin(), char_iterator));
-                    state = OpTokenType::UNKNOWN;
-                    buffer.clear();
-                    continue;
-                }
-
-            break;
-
-
-
-            case OpTokenType::FLAG:
-                
-                if(isalnum(*char_iterator))
-                {
-                    buffer += *char_iterator;
-                }
-
-                else
-                {
-                    tokens.emplace_back(buffer, state, std::distance(line.begin(), char_iterator));
-                    state = OpTokenType::UNKNOWN;
-                    continue;
-                }
-
-            break;
-        }
-        
-        char_iterator++;
-    }
-
-    if(!buffer.empty())
-    {
-        tokens.emplace_back(buffer, OpTokenType::UNKNOWN, std::distance(line.begin(), char_iterator-1));
-    }
-
-    return tokens;
-}
-
-
 
 
 flag_map getFlags(token_list& tokens)
@@ -252,6 +118,7 @@ flag_map getFlags(token_list& tokens)
     }
 
     return flags;
+
     /*
         -> LEMBRAR
         Funções importantes para objetos `std::variant<a, b>`:
@@ -270,6 +137,7 @@ flag_map getFlags(token_list& tokens)
             - Aplica uma lógica automaticamente, com base no tipo armazenado.
     */
 }
+
 
 
 PROCESS_INFORMATION StartNotepad(std::string& command)

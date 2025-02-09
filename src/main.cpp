@@ -22,67 +22,74 @@ void startKeywordInterface(sqlite3* db, std::string& keyword, int id)
     if(keyword_id > 0){ entries = getKeywordResults(db, keyword_id); }
 
     // entry_map::iterator entry_map_it = entries.end(); // Why did I add this at all?
-    
+
     std::cout << "< Iniciando interface para a palavra-chave `" << keyword << "` (id " << keyword_id << ").\n";
     std::string command_input = "";
 
-
-
-
-
-
-    bool finished = false;
-    do
+    while(true)
     {
-        bool keyword_exists = keyword_id >= 0;
-
-        // Exibe as entradas já existentes antes de cada nova operação realizada.
-        if( keyword_exists && !entries.empty() ){ showEntries(entries, keyword); }
-        
-        std::cout << "\nO que fazer?\n> ";
+        std::cout << "\n< Digite o comando\n> ";
         std::getline(std::cin, command_input);
 
-        // TODO: Main change here.
-        // std::vector<std::string> tokens = split(command_input, ' ');
-        // brush(tokens, " "); // Theoretically, this is gonna become useless.
-        // // Para debug: Mostra todos os tokens inseridos.
-        // std::cout << "\nTokens:\n";
-        // for(std::string& token : tokens){std::cout << token << "\n";} std::cout << "\n";
-        // const std::string command = getCommand(tokens); // Remove o primeiro token do vetor.
-        // Operation operation = getOperation(command);
+        if(command_input == "EXIT") break;
 
         std::vector<Token> tokens = tokenize(command_input);
-        // TODO: Adicionar um filtro de exclusão de tokens repetidos.
+        // TODO: Adicionar um filtro de exclusão de tokens repetidos (talvez).
 
         // Debug
         std::cout << "Token list:\n";
         for(Token token : tokens)
-        { std::cout << "- " << token.content << "   \t|\tTipo: " << enumToString(token.type) << "\n"; }
+        { std::cout << "-" << " Tipo: " << enumToString(token.type) << "\t|  " << token.content << "\n"; }
+        std::cout << "\n";
+    }
+    // bool finished = false;
+    // do
+    // {
+    //     bool keyword_exists = keyword_id >= 0;
 
-        Operation operation = getOperation(tokens[0].content);
+    //     // Exibe as entradas já existentes antes de cada nova operação realizada.
+    //     if( keyword_exists && !entries.empty() ){ showEntries(entries, keyword); }
+        
+    //     std::cout << "\nO que fazer?\n> ";
+    //     std::getline(std::cin, command_input);
 
-        if(tokens[0].type != TokenType::IDENTIFIER || operation == INVALID_op)
-        { std::cerr << "O comando de operação inserido não é adequado.\n"; }
+    //     std::vector<Token> tokens = tokenize(command_input);
+    //     // TODO: Adicionar um filtro de exclusão de tokens repetidos.
 
-        std::vector<Token> op_tokens(tokens.begin() + 1, tokens.end());
+    //     // Debug
+    //     std::cout << "Token list:\n";
+    //     for(Token token : tokens)
+    //     { std::cout << "- " << token.content << "   \t\t\t|\tTipo: " << enumToString(token.type) << "\n"; }
 
-        switch(operation)
-        {
-            case NEW_op:
+    //     Operation operation = getOperation(tokens[0].content);
 
-                if(!keyword_exists)
-                {
-                    newEntry(db, op_tokens, keyword_id, db_DefineKeyword);
-                }
+    //     if(tokens[0].type != OpTokenType::IDENTIFIER || operation == INVALID_op)
+    //     { std::cerr << "O comando de operação inserido não é adequado.\n"; }
 
-                else
-                {
+    //     token_list op_tokens(tokens.begin() + 1, tokens.end());
 
-                }
+        // switch(operation)
+        // {
+        //     case NEW_op:
 
-            break;
+        //         if(keyword_exists)
+        //         {
+        //             if(!db_DefineKeyword(db, keyword))
+        //             {
+        //                 std::cerr << "<# Não foi possível registrar a palavra-chave no banco de dados.\n";
+        //                 break;
+        //             }
+        //         }
+
+        //         try{ newEntry(db, op_tokens, keyword_id); }
+
+        //         catch(std::runtime_error err)
+        //         { std::cerr << err.what() << "\n"; }
+
+        //     break;
             
-        }
+        // }
+        
         // 	case NEW_op:
                 
         //         if(!keyword_exists)
@@ -217,8 +224,6 @@ void startKeywordInterface(sqlite3* db, std::string& keyword, int id)
         //         // Do jeito que o sistema está agora, provavelmente nunca chegaremos aqui, mas vai saber...
         //         ShowHelpMenu();
 	    // }
-
-    } while(!finished);
 }
 
 
@@ -276,13 +281,14 @@ int main()
     {
         std::cout << "\nBusque por uma palavra-chave. (Digite .exit para encerrar)\n> ";
         std::getline(std::cin, keyword);
+        std::string trimmed_keyword = trim(keyword);
         std::cout << "\n";
         if(keyword == ".exit"){ break; }
 
-        keyword_id = getKeywordId(db.get(), keyword);
+        keyword_id = getKeywordId(db.get(), trimmed_keyword);
         std::clog << "< current keyword id: " << keyword_id << ".\n";
 
-        startKeywordInterface(db.get(), keyword, keyword_id);
+        startKeywordInterface(db.get(), trimmed_keyword, keyword_id);
     }
 
     std::cout << "Encerrando programa.\n";
