@@ -6,13 +6,13 @@ static bool bisalnum(char c)
 static bool contains(std::unordered_set<char>& set, char c)
 { return set.count(c) > 0; };
 
-static int col(std::string& line, auto& it)
+static int col(const std::string& line, auto& it)
 { return std::distance(line.begin(), it); };
 
-void to_initial(std::string& buffer, OpTokenType& state)
-{ buffer.clear(); state = OpTokenType::UNKNOWN; };
+static void to_initial(std::string& buffer, OpTokenType& state)
+{ buffer.clear(); state = OpTokenType::INITIAL; };
 
-template <typename Iterator, typename... Args>
+template <typename Iterator, typename ...Args>
 static void log_err(std::string& line, Iterator it, Args... args)
 {
     const int pos = col(line, it);
@@ -20,22 +20,146 @@ static void log_err(std::string& line, Iterator it, Args... args)
     (std::cerr << ... << args) << "\n";
     std::cerr << " (pos. " << pos << ")\n";
 }
+static void log_err(const std::string& err)
+{ std::cerr << "<# " << err; }
 
 
+/**
+ * @brief Processa a situação de caso inicial/padrão do tokenizador.
+ * 
+ * @param it Iterador para a linha de comando.
+ * @return O estado `OpTokenType` identificado no iterador.
+ */
+static const OpTokenType processInitialCase(std::string::iterator& it)
+{
+    // Ignora espaços em branco.
+    while(*it == ' ') it++;
 
+    // Se o caractere for alfanumérico, retorna o estado IDENTIFIER.
+    if(bisalnum(*it)) return OpTokenType::IDENTIFIER;
+
+    // Se o caractere for `-`, retorna o estado FLAG.
+    if(*it == '-') return OpTokenType::FLAG;
+
+    // Se o caractere for `"`, retorna o estado STRING.
+    if(*it == '\"')
+    {
+        it++; // Pula o caractere que abre aspas.
+        return OpTokenType::STRING;
+    }
+
+    // Caractere não reconhecido encontrado, retorna state UNKNOWN.
+    return OpTokenType::UNKNOWN;
+}
+
+
+/**
+ * @brief Processa uma flag a partir da linha do comando.
+ * 
+ * @param line A linha de comando completa (usada apenas para mensagens de erro).
+ * @param it Iterador para a linha de comando. Deve apontar para um hífen (`-`).
+ * @return A flag processada.
+ * @throws std::runtime_error Caso haja algum erro no processamento da flag.
+ */
+static std::string processFlagCase(const std::string& line, std::string::iterator& it)
+{
+    const std::string::iterator start = it;
+    const int max_dash_count = 2; // Número máximo de hífens permitidos.
+    int dash_count = 0;           // Contador de hífens.
+    std::string buffer;           // Buffer para armazenar a flag.
+
+    // Passo 1: Processa os hífens iniciais.
+    // Como o iterador já aponta para um hífen, não precisamos verificar se a linha está vazia.
+    while (it != line.end() && *it == '-')
+    {
+        buffer += '-';
+        dash_count++;
+        it++;
+    }
+
+    // Passo 2: Valida o número de hífens.
+    // Se houver mais hífens do que o permitido, retorna uma string vazia para indicar erro.
+    if (dash_count > max_dash_count)
+    {
+        // Flag inválida.
+        ErrorMsg err;
+        err << "(Coluna " << col(line, start) << ") Flag `" << buffer << "` inválida.\n";
+        throw std::runtime_error(err.get());
+    }
+
+    // Passo 3: Processa os caracteres alfanuméricos da flag.
+    while (it != line.end() && bisalnum(*it))
+    {
+        buffer += *it;
+        it++;
+    }
+
+    // Passo 4: Retorna a flag processada.
+    // Se não houver caracteres alfanuméricos após os hífens, a flag é inválida.
+    if (buffer.size() == dash_count)
+    {
+        // Flag inválida (apenas hífens, sem identificador).
+        ErrorMsg err;
+        err << "(Coluna " << col(line, start) << ") Flag `" << buffer << "` inválida (apenas hífens, sem identificador).\n";
+        throw std::runtime_error(err.get());
+    }
+
+    return buffer;
+}
+
+
+/**
+ * @brief Processa uma string a partir da linha do comando.
+ * 
+ * @param line A linha de comando completa (usada apenas para mensagens de erro).
+ * @param it Iterador para a linha de comando. Deve apontar para um caractere de aspas (`"`).
+ * @return A string processada.
+ * @throws std::runtime_error Caso haja algum erro no processamento da string.
+ */
+static std::string processStringCase(const std::string& line, std::string::iterator& it)
+{
+    std::string buffer; // Define o buffer da string.
+    const std::string::iterator start = it; // Salva o iterador do ponto de partida da análise.
+
+    // Passo 1: Acumula caracteres no buffer até encontrar o próximo caractere `"` ou chegar no fim da linha.
+    while(it != line.end() && *it != '\"')
+    {
+        buffer += *it;
+        it++;
+    }
+
+    // Passo 2: Confere se a string está fechada ou se alcançou o fim da linha de leitura.
+    if(it != line.end() || *(++it) == '\0')
+    {
+        ErrorMsg err; // Logger de erro.
+        err << "(Coluna " << col(line, start) << ") Caractere `\"` inválido.\n";
+        throw std::runtime_error(err.get()); // Lança exceção.
+    }
+
+    // Passo 3: Confere se a string no buffer está vazia ou contém apenas espaços.
+    const std::string trimmed_buffer = trim(buffer);
+    if(trimmed_buffer.empty())
+    {
+        ErrorMsg err; // Logger de erro.
+        err << "(Coluna " << col(line, start) << ") Strings vazias não são aceitas.\n";
+        throw std::runtime_error(err.get()); // Lança exceção.
+    }
+
+    // Passo 4: Caso nenhuma exceção seja lançada na análise, retorna o buffer.
+    return buffer;
+}
 
 
 /*
     PONTOS A MELHORAR:
 
-    - [ ] Reduzir a densidade e tornar mais legível;
-    - [ ] Implementar um mecanismo mais robusto de tratamento de erros;
+    - [x] Reduzir a densidade e tornar mais legível;
+    - [x] Implementar um mecanismo mais robusto de tratamento de erros;
     - [x] Utilizar uma estrutura de dados mais eficiente para vetores e verificações de pertinência;
-    - [ ] Refatorar trechos de código para reduzir redundância;
+    - [x] Refatorar trechos de código para reduzir redundância;
     - [x] Implementar um padrão e aumentar consistênca nas mensagens de log;
-    - [ ] Aumentar clareza no processo de encerramento do buffer.
+    - [x] Aumentar clareza no processo de encerramento do buffer.
 */
-
 std::vector<Token> tokenize(std::string& line)
 {
     std::cout << "<! Iniciando tokenizador do comando.\n";
@@ -43,11 +167,7 @@ std::vector<Token> tokenize(std::string& line)
     // Vetor que armazenará os tokens gerados.
     std::vector<Token> tokens{};
 
-    // Caracteres de pontuação permitidos.
-    std::unordered_set<char> allowed_punctuation =
-    {',', '.', '-', '_', '?', '!', ':', ';', '(', ')', '[', ']', '{', '}'};
-
-    OpTokenType state = OpTokenType::UNKNOWN;   // Estado inicial da máquina de estados.
+    OpTokenType state = OpTokenType::INITIAL;   // Estado inicial da máquina de estados.
     std::string buffer = "";
 
     std::cout << "<! Iniciando laço principal da máquina de estados.\n";
@@ -58,36 +178,16 @@ std::vector<Token> tokenize(std::string& line)
     {
         switch(state)
         {
-            case OpTokenType::UNKNOWN:
+            case OpTokenType::INITIAL:
 
-                // Ignora espaços em branco.
-                if(*char_iterator == ' '){ char_iterator++; break; }
+                state = processInitialCase(char_iterator);
 
-                // Se o caractere for alfanumérico, muda para o estado IDENTIFIER.
-                if(bisalnum(*char_iterator))
+                if(state == OpTokenType::UNKNOWN)
                 {
-                    state = OpTokenType::IDENTIFIER;
-                    break;
+                    ErrorMsg err;
+                    err << "(Coluna " << col(line, char_iterator) << ") Caractere " << *char_iterator << " não identificado.\n" ;
+                    throw std::runtime_error(err.get());
                 }
-
-                // Se o caractere for `-`, muda para o estado FLAG.
-                if(*char_iterator == '-')
-                {
-                    state = OpTokenType::FLAG;
-                    break;
-                }
-
-                // Se o caractere for `"`, muda para o estado STRING.
-                if(*char_iterator == '\"')
-                {
-                    char_iterator++;
-                    state = OpTokenType::STRING;
-                    break;
-                }
-
-
-                log_err(line, char_iterator, "Caractere ", *char_iterator, " não identificado.");
-                char_iterator++;
 
             break;
 
@@ -109,114 +209,29 @@ std::vector<Token> tokenize(std::string& line)
             
 
             case OpTokenType::FLAG:
+                buffer = processFlagCase(line, char_iterator);
 
-                // Acumula caractere alfanumérico no buffer.
-                if(bisalnum(*char_iterator))
-                {
-                    buffer += *char_iterator;
-                    char_iterator++;
-                }
-
-                // Se o caractere for um '-', valida se a flag é do tipo `-f` ou `--flag`.
-                else if(*char_iterator == '-')
-                {    
-                    // Caso o buffer já tenha mais de dois caracteres, o terceiro `-` demarca ou o início de uma nova flag ou um erro. 
-                    if(buffer.size() > 2)
-                    {
-                        if(buffer == "--")
-                        {
-                            log_err(line, char_iterator, "Houve uma tentativa falha de adicionar uma flag sem identificador (-f ou --flag).");
-                            // std::cerr << "<# Flag inválida. (" << col(char_iterator) << ")\n";
-                            char_iterator++;
-                        }
-
-                        else
-                        {
-                            tokens.emplace_back(buffer, state, col(line, char_iterator));
-                            to_initial(buffer, state);
-                        }
-
-                    }
-
-                    // Iterador apontando para a posição inicial do iterador principal. 
-                    auto start = char_iterator;
-
-                    // Atravessa os caracteres `-`, atualizando a posição do iterador principal.
-                    while(char_iterator != line.end() && *char_iterator == '-') char_iterator++;
-
-                    // Calcula o número de ocorrências do caractere `-` baseado na diferença de posição dos iteradores.
-                    const int occurrences = std::distance(start, char_iterator);
-
-                    if(occurrences == 1) buffer += "-";         // Declara flag do tipo `-f`
-                    else if(occurrences == 2) buffer += "--";   // Declara flag do tipo `--flag`
-                    
-                    // Caso hajam mais de dois caracteres de `-` no trecho.
-                    else
-                    {
-                        log_err(line, char_iterator, "Houve uma tentativa falha de adicionar uma flag sem identificador (-f ou --flag).");
-                        to_initial(buffer, state);
-                        char_iterator = start + 1;
-                    }
-
-                }
-
-                // Adiciona o token do tipo FLAG ao vetor de tokens.
-                else
-                {
-                    tokens.emplace_back(buffer, state, col(line, char_iterator));
-                    to_initial(buffer, state); // Retorna ao estado original.
-                }
-
+                tokens.emplace_back(buffer, state, col(line, char_iterator));
+                to_initial(buffer, state);
             break;
 
 
             case OpTokenType::STRING:
+                buffer = processStringCase(line, char_iterator);
 
-                auto start = char_iterator; // Iterador para a posição inicial do vetor.
-
-                // Acumula elementos de string no buffer.
-                while(char_iterator != line.end() && *char_iterator != '\"')
-                {
-                    buffer += *char_iterator;
-                    char_iterator++;
-                }
-
-                // Booleano para checar se o iterador chegou ao fim sem fechar a string.
-                bool is_end = (char_iterator == line.end());
-
-                if(is_end)
-                {
-                    log_err(line, char_iterator, "Há um elemento `\"` inválido no comando que será ignorado.");
-                    
-                    char_iterator = start+1; // Salta uma posição para analisar o próximo elemento.
-                    to_initial(buffer, state);
-                    break; // Termina iteração.
-                }
-
-                // Dispara uma mensagem de erro caso o buffer (sem espaços) esteja vazio.
-                else if(trim(buffer).empty())
-                {
-                    log_err(line, char_iterator, "A string vazia será ignorada.");
-                }
-
-                else
-                {
-                    tokens.emplace_back(buffer, state, col(line, char_iterator));
-                }
-
-                char_iterator++;
+                tokens.emplace_back(buffer, state, col(line, char_iterator));
                 to_initial(buffer, state);
-
             break;
         }
     }
 
 
-    // Ignorar por enquanto.
+    // Verifica se o buffer está vazio ao final da análise.
     if(!buffer.empty())
     {
-        // Caso ainda haja algo no buffer após o fim do loop.
-        tokens.emplace_back(buffer, OpTokenType::UNKNOWN, std::distance(line.begin(), char_iterator-1));
+        ErrorMsg err;
+        err << "(Coluna " << col(line, char_iterator) << ") Buffer não vazio ao final do tokenizador: " << buffer << "\n";
+        throw std::runtime_error(err.get());
     }
 
     std::cout << "<! A função do tokenizador foi concluída com sucesso.\n";

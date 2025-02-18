@@ -12,14 +12,14 @@ void showEntries(entry_map& entries, const std::string& keyword)
 }
 
 
-std::string trim(const std::string& text)
+std::string& trim(std::string& text)
 {
     size_t start = text.find_first_not_of(" \t\n\r\f\v");
     size_t end = text.find_last_not_of(" \t\n\r\f\v");
 
-    std::string trimmed_text = (start == std::string::npos) ? "" : text.substr(start, end - start + 1);
+    text = (start == std::string::npos) ? "" : text.substr(start, end - start + 1);
     
-    return trimmed_text;
+    return text;
 }
 
 
