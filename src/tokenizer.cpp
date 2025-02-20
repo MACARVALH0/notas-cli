@@ -6,8 +6,8 @@ static bool bisalnum(char c)
 static bool contains(std::unordered_set<char>& set, char c)
 { return set.count(c) > 0; };
 
-static int col(const std::string& line, auto& it)
-{ return std::distance(line.begin(), it); };
+static int col(const std::string::iterator& line_start, const std::string::iterator& it)
+{ return std::distance(line_start, it); };
 
 static void to_initial(std::string& buffer, OpTokenType& state)
 { buffer.clear(); state = OpTokenType::INITIAL; };
@@ -61,8 +61,11 @@ static const OpTokenType processInitialCase(std::string::iterator& it)
  * @return A flag processada.
  * @throws std::runtime_error Caso haja algum erro no processamento da flag.
  */
-static std::string processFlagCase(const std::string& line, std::string::iterator& it)
+static std::string processFlagCase(std::string& line, std::string::iterator& it)
 {
+    std::string::iterator line_start = line.begin();
+    std::string::iterator line_end = line.end();
+
     const std::string::iterator start = it;
     const int max_dash_count = 2; // Número máximo de hífens permitidos.
     int dash_count = 0;           // Contador de hífens.
@@ -70,7 +73,7 @@ static std::string processFlagCase(const std::string& line, std::string::iterato
 
     // Passo 1: Processa os hífens iniciais.
     // Como o iterador já aponta para um hífen, não precisamos verificar se a linha está vazia.
-    while (it != line.end() && *it == '-')
+    while (it != line_end && *it == '-')
     {
         buffer += '-';
         dash_count++;
@@ -83,12 +86,12 @@ static std::string processFlagCase(const std::string& line, std::string::iterato
     {
         // Flag inválida.
         ErrorMsg err;
-        err << "(Coluna " << col(line, start) << ") Flag `" << buffer << "` inválida.\n";
+        err << "(Coluna " << col(line_start, start) << ") Flag `" << buffer << "` inválida.\n";
         throw std::runtime_error(err.get());
     }
 
     // Passo 3: Processa os caracteres alfanuméricos da flag.
-    while (it != line.end() && bisalnum(*it))
+    while (it != line_end && bisalnum(*it))
     {
         buffer += *it;
         it++;
@@ -100,7 +103,7 @@ static std::string processFlagCase(const std::string& line, std::string::iterato
     {
         // Flag inválida (apenas hífens, sem identificador).
         ErrorMsg err;
-        err << "(Coluna " << col(line, start) << ") Flag `" << buffer << "` inválida (apenas hífens, sem identificador).\n";
+        err << "(Coluna " << col(line_start, start) << ") Flag `" << buffer << "` inválida (apenas hífens, sem identificador).\n";
         throw std::runtime_error(err.get());
     }
 
@@ -116,23 +119,26 @@ static std::string processFlagCase(const std::string& line, std::string::iterato
  * @return A string processada.
  * @throws std::runtime_error Caso haja algum erro no processamento da string.
  */
-static std::string processStringCase(const std::string& line, std::string::iterator& it)
+static std::string processStringCase(std::string& line, std::string::iterator& it)
 {
+    std::string::iterator line_start = line.begin();
+    std::string::iterator line_end = line.end();
+
     std::string buffer; // Define o buffer da string.
     const std::string::iterator start = it; // Salva o iterador do ponto de partida da análise.
 
     // Passo 1: Acumula caracteres no buffer até encontrar o próximo caractere `"` ou chegar no fim da linha.
-    while(it != line.end() && *it != '\"')
+    while(it != line_end && *it != '\"')
     {
         buffer += *it;
         it++;
     }
 
     // Passo 2: Confere se a string está fechada ou se alcançou o fim da linha de leitura.
-    if(it != line.end() || *(++it) == '\0')
+    if(it != line_end && *(++it) == '\0')
     {
         ErrorMsg err; // Logger de erro.
-        err << "(Coluna " << col(line, start) << ") Caractere `\"` inválido.\n";
+        err << "(Coluna " << col(line_start, start) << ") Caractere `\"` inválido.\n";
         throw std::runtime_error(err.get()); // Lança exceção.
     }
 
@@ -141,7 +147,7 @@ static std::string processStringCase(const std::string& line, std::string::itera
     if(trimmed_buffer.empty())
     {
         ErrorMsg err; // Logger de erro.
-        err << "(Coluna " << col(line, start) << ") Strings vazias não são aceitas.\n";
+        err << "(Coluna " << col(line_start, start) << ") Strings vazias não são aceitas.\n";
         throw std::runtime_error(err.get()); // Lança exceção.
     }
 
@@ -170,9 +176,10 @@ std::vector<Token> tokenize(std::string& line)
     OpTokenType state = OpTokenType::INITIAL;   // Estado inicial da máquina de estados.
     std::string buffer = "";
 
-    std::cout << "<! Iniciando laço principal da máquina de estados.\n";
+    // std::cout << "<! Iniciando laço principal da máquina de estados.\n";
 
     // Laço principal da máquina de estados.
+    auto line_start = line.begin();
     auto char_iterator = line.begin(); // Iterador que percorrerá a linha.
     while(char_iterator != line.end())
     {
@@ -185,7 +192,7 @@ std::vector<Token> tokenize(std::string& line)
                 if(state == OpTokenType::UNKNOWN)
                 {
                     ErrorMsg err;
-                    err << "(Coluna " << col(line, char_iterator) << ") Caractere " << *char_iterator << " não identificado.\n" ;
+                    err << "(Coluna " << col(line_start, char_iterator) << ") Caractere `" << *char_iterator << "` não identificado.\n" ;
                     throw std::runtime_error(err.get());
                 }
 
@@ -202,7 +209,7 @@ std::vector<Token> tokenize(std::string& line)
                 }
 
                 // Adiciona o token do tipo IDENTIFIER ao vetor de tokens.
-                tokens.emplace_back(buffer, state, col(line, char_iterator));
+                tokens.emplace_back(buffer, state, col(line_start, char_iterator));
                 to_initial(buffer, state); // Retorna ao estado inicial.
                 
             break;
@@ -211,7 +218,7 @@ std::vector<Token> tokenize(std::string& line)
             case OpTokenType::FLAG:
                 buffer = processFlagCase(line, char_iterator);
 
-                tokens.emplace_back(buffer, state, col(line, char_iterator));
+                tokens.emplace_back(buffer, state, col(line_start, char_iterator));
                 to_initial(buffer, state);
             break;
 
@@ -219,7 +226,7 @@ std::vector<Token> tokenize(std::string& line)
             case OpTokenType::STRING:
                 buffer = processStringCase(line, char_iterator);
 
-                tokens.emplace_back(buffer, state, col(line, char_iterator));
+                tokens.emplace_back(buffer, state, col(line_start, char_iterator));
                 to_initial(buffer, state);
             break;
         }
@@ -230,7 +237,7 @@ std::vector<Token> tokenize(std::string& line)
     if(!buffer.empty())
     {
         ErrorMsg err;
-        err << "(Coluna " << col(line, char_iterator) << ") Buffer não vazio ao final do tokenizador: " << buffer << "\n";
+        err << "(Coluna " << col(line_start, char_iterator) << ") Buffer não vazio ao final do tokenizador: " << buffer << "\n";
         throw std::runtime_error(err.get());
     }
 

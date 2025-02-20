@@ -28,24 +28,45 @@ void startKeywordInterface(sqlite3* db, std::string& keyword, int id)
 
     while(true)
     {
+        // Exibe as entradas já existentes antes de cada nova operação realizada.
+        bool keyword_exists = keyword_id >= 0;
+        if( keyword_exists && !entries.empty() ){ showEntries(entries, keyword); }
+
         std::cout << "\n< Digite o comando\n> ";
         std::getline(std::cin, command_input);
 
         if(command_input == "EXIT") break;
 
-        std::vector<Token> tokens = tokenize(command_input);
-        // TODO: Adicionar um filtro de exclusão de tokens repetidos (talvez).
+        try
+        {
+            std::vector<Token> tokens = tokenize(command_input);
+            // TODO: Adicionar um filtro de exclusão de tokens repetidos (talvez).
 
-        // Debug
-        std::cout << "Token list:\n";
-        for(Token token : tokens)
-        { std::cout << "-" << " Tipo: " << enumToString(token.type) << "\t|  " << token.content << "\n"; }
-        std::cout << "\n";
+            // Debug
+            std::cout << "Token list:\n";
+            size_t max_size_a = 12;
+            for(Token token : tokens)
+            {
+                std::string enum_string = enumToString(token.type);
+                int blank_space_size = max_size_a - enum_string.size();
+
+                std::cout << "-" << " Tipo: " << enum_string << std::string (blank_space_size, ' ')  << "|  " << token.content << "\n";
+            }
+            std::cout << "\n";
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+        
+
+
+
     }
     // bool finished = false;
     // do
     // {
-    //     bool keyword_exists = keyword_id >= 0;
+    //     
 
     //     // Exibe as entradas já existentes antes de cada nova operação realizada.
     //     if( keyword_exists && !entries.empty() ){ showEntries(entries, keyword); }
@@ -232,75 +253,50 @@ void startKeywordInterface(sqlite3* db, std::string& keyword, int id)
 
 int main()
 {
-    try
-    {
-        // Eu sinceramente não sei se isso aqui tá funcionando, o encoding nesse computador é um mistério.
-        std::locale::global(std::locale(""));
-        std::wcout.imbue(std::locale(""));
-    }
-
-    catch(const std::runtime_error& err)
-    {
-        // Sim, captura de exceção pra parte mais inútil do código...
-        std::cerr << "<# Não foi possível definir o locale via `std::locale::global(std::locale(""))`.\n";
-        std::cout << err.what() << ".\n";
-
-        if(setlocale(LC_ALL, "") == nullptr)
-        { std::cerr << "<# Também nãoo foi possível definir o locale com setlocale(LC_ALL, \"\"), puts.\n"; }
-
-        std::cout << "\n";
-    }
-
-
-    // Começo da parte importante.
+    // Declara um ponteiro do tipo `db_ptr` (std::unique_ptr<sqlite3, db_ptr_deleter>)
     db_ptr db = nullptr;
 
+    // Tenta acessar o banco de dados
     try
     {
-        // Retorna um ponteiro inteligente do tipo `db_ptr`
+        // Em caso de sucesso, retorna um ponteiro inteligente do tipo `db_ptr`
         db = getDatabasePtr();
         std::cout << "Conexão bem sucedida com o banco de dados.\n\n";
     }
 
     catch(const std::runtime_error& err)
     {
-        // Handler para erro em obter o ponteiro para o banco de dados.
+        // Handler para caso de erro em obter o ponteiro para o banco de dados.
         std::cerr << err.what() << '\n';
-        system("pause");
+        system("pause"); // Pausa o console para leitura da mensagem de erro.
         return -1;
     }
 
-    std::string keyword = ""; // Palavra-chave de busca.
-    int keyword_id = -1; // id da palavra-chave no banco.
+    std::string keyword = "";   // Palavra-chave de busca.
+    int keyword_id = -1;        // id da palavra-chave no banco.
 
 
-    std::cout << "Bem-vindo à aplicação de notas.\n";
+    std::cout << "< Bem-vindo à aplicação de notas. >\n";
 
 
     while(1)
     {
         std::cout << "\nBusque por uma palavra-chave. (Digite .exit para encerrar)\n> ";
-        std::getline(std::cin, keyword);
-        std::string trimmed_keyword = trim(keyword);
-        std::cout << "\n";
-        if(keyword == ".exit"){ break; }
+        std::getline(std::cin, keyword); // Lê o input na linha de comando e salva em `keyword`.
+        std::string trimmed_keyword = trim(keyword); // Sanitiza o input limpando espaços adjacentes ao texto.
+        std::cout << "\n"; // Adiciona quebra de linha.
+        if(keyword == ".exit"){ break; } // Termina a execução do programa caso o input seja ".exit".
 
+        // Captura o id da palavra-chave no banco de dados, caso a mesma exista. Passa como argumentos o ponteiro e o nome.
         keyword_id = getKeywordId(db.get(), trimmed_keyword);
-        std::clog << "< current keyword id: " << keyword_id << ".\n";
+        std::clog << "< current keyword id: " << keyword_id << ".\n"; // Log de sistema.
 
+        // Inicia a interface da palavra-chave com o id retornado.
         startKeywordInterface(db.get(), trimmed_keyword, keyword_id);
     }
 
+    // Fim da execução do programa. Pausa o console e aguarda input do usuário para fechamento.
     std::cout << "Encerrando programa.\n";
     system("pause");
     return 0;
 }
-
-// std::cout << "< Entradas sob esta palavra-chave:\n";
-// entry_map results = {}; // std::map de resultados.
-// if(keyword_id > 0)
-// {
-// results = getKeywordResults(db.get(), keyword_id); // Vetor de pares [id, texto]
-// if(results.empty()){std::cout << "Nenhuma entrada.\n"; }
-// }
-// else{ std::cout << "A palavra-chave ainda n�o foi registrada.\n"; }
