@@ -17,11 +17,10 @@
 
 void startKeywordInterface(sqlite3* db, std::string& keyword, int id)
 {
-    int keyword_id = id;
-    entry_map entries = {};
-    if(keyword_id > 0){ entries = getKeywordResults(db, keyword_id); }
+    int keyword_id = id; // Cache do id da palavra-chave.
 
-    // entry_map::iterator entry_map_it = entries.end(); // Why did I add this at all?
+    // Mapeia as entradas em pares chave-valor no padrão id-título.
+    entry_map entries = keyword_id > 0 ? getKeywordResults(db, keyword_id) : entry_map{};
 
     std::cout << "< Iniciando interface para a palavra-chave `" << keyword << "` (id " << keyword_id << ").\n";
     std::string command_input = "";
@@ -29,13 +28,13 @@ void startKeywordInterface(sqlite3* db, std::string& keyword, int id)
     while(true)
     {
         // Exibe as entradas já existentes antes de cada nova operação realizada.
-        bool keyword_exists = keyword_id >= 0;
-        if( keyword_exists && !entries.empty() ){ showEntries(entries, keyword); }
+        bool keyword_exists = keyword_id >= 0; // Boolean para checagem rápida se a palavra-chave possui um id já registrado no banco de dados.
+        if( keyword_exists && !entries.empty() ){ showEntries(entries, keyword); } // Caso a palavra-chave já esteja registrada, mostra suas entradas.
 
         std::cout << "\n< Digite o comando\n> ";
-        std::getline(std::cin, command_input);
+        std::getline(std::cin, command_input); // Lê a linha de comando no console.
 
-        if(command_input == "EXIT") break;
+        if(command_input == "EXIT") break; // Encerra a interface caso o comando seja "EXIT".
 
         try
         {
@@ -283,8 +282,10 @@ int main()
     {
         std::cout << "\nBusque por uma palavra-chave. (Digite .exit para encerrar)\n> ";
         std::getline(std::cin, keyword); // Lê o input na linha de comando e salva em `keyword`.
+        
         std::string trimmed_keyword = trim(keyword); // Sanitiza o input limpando espaços adjacentes ao texto.
-        std::cout << "\n"; // Adiciona quebra de linha.
+        std::cout << "\n"; // Adiciona quebra de linha à stream de saída.
+
         if(keyword == ".exit"){ break; } // Termina a execução do programa caso o input seja ".exit".
 
         // Captura o id da palavra-chave no banco de dados, caso a mesma exista. Passa como argumentos o ponteiro e o nome.

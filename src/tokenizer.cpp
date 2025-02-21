@@ -135,10 +135,10 @@ static std::string processStringCase(std::string& line, std::string::iterator& i
     }
 
     // Passo 2: Confere se a string está fechada ou se alcançou o fim da linha de leitura.
-    if(it != line_end && *(++it) == '\0')
+    if(it == line_end)
     {
         ErrorMsg err; // Logger de erro.
-        err << "(Coluna " << col(line_start, start) << ") Caractere `\"` inválido.\n";
+        err << "(Coluna " << col(line_start, start) << ") Caractere `\"` inválido." << " (*it: " << *it << ")\n";
         throw std::runtime_error(err.get()); // Lança exceção.
     }
 
