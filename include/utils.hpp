@@ -78,6 +78,9 @@ bool includes(std::vector<T>& v, T element)
 { return std::find(v.begin(), v.end(), element) != v.end(); }
 
 
+void DEBUG_showTokens(const token_list& tokens);
+
+
 template <typename T>
 std::vector<T> splice(std::vector<T> v, size_t start_index, size_t count)
 {

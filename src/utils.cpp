@@ -1,5 +1,22 @@
 #include "utils.hpp"
 
+void DEBUG_showTokens(const token_list& tokens)
+{
+     // Debug
+    std::cout << "Token list:\n";
+    size_t max_size_a = 12; // Tamanho máximo que deve ser mantido entre a string do tipo de token e o caractere de separação `|`.
+    for(Token token : tokens)
+    {
+        std::string enum_string = enumToString(token.type); // Recebe uma string nomeando o tipo de token.
+        int blank_space_size = max_size_a - enum_string.size(); // Encontra a quantidade de espaços a serem adicionados entre o tipo de token e o caractere `|`.
+
+        // Informa o token.
+        std::cout << "-" << " Tipo: " << enum_string << std::string (blank_space_size, ' ')  << "|  " << token.content << "\n";
+    }
+    std::cout << "\n";
+}
+
+
 void showEntries(entry_map& entries, const std::string& keyword)
 {
     std::cout << "\n";
