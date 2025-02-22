@@ -86,11 +86,11 @@ Operation getOperation(std::string token)
     // Checa se o comando existe.
     auto op_iterator = op_map.find(op_name);
     if(op_iterator != op_map.end()){ return op_iterator->second; }
-    else{ return INVALID_op; }
+    else{ return UNKNOWN_op; }
 }
 
 
-flag_map getFlags(token_list& tokens)
+flag_map getFlags(const token_list& tokens)
 {
     flag_map flags =
     {

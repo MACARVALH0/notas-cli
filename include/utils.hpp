@@ -26,7 +26,7 @@ enum Operation
     DELETE_op,
     EXIT_op,
     HELP_op,
-    INVALID_op
+    UNKNOWN_op
 };
 
 enum class OpTokenType
@@ -36,6 +36,30 @@ enum class OpTokenType
     IDENTIFIER,
     FLAG,
     STRING
+};
+
+// struct Keyword
+// {
+//     std::string name;
+//     int id;
+
+//     Keyword(std::string name, int id)
+//     : name(std::move(name)), id(id) {} 
+// };
+
+class Keyword
+{
+    public:
+
+        std::string name;
+        int id;
+        
+        // Construtor padrão.
+        Keyword(std::string name, int id)
+        : name(std::move(name)), id(id) {}
+
+        // Retorna `true` se a keyword possui um id válido registrado no banco de dados. Caso contrário, retorna `false`.
+        bool exists(){ return id >= 0; }
 };
 
 struct Token
@@ -52,6 +76,7 @@ struct Token
 class ErrorMsg
 {
     std::ostringstream stream;
+    std::string errFlag = "<# ";
 
     public:
 
@@ -68,9 +93,8 @@ class ErrorMsg
             return *this;
         }
 
-        std::string get() const { return stream.str(); }
+        std::string get() const { return errFlag + stream.str(); }
 };
-
 
 
 template <typename T>
@@ -122,7 +146,12 @@ Operation getOperation(std::string token);
  */
 std::vector<Token> tokenize(std::string& line);
 
-flag_map getFlags(token_list& tokens);
+/**
+ * @brief Processa operações específicas de cada comando.
+ */
+void processTokenOp(Keyword& keyword, const token_list& tokens, sqlite3* db);
+
+flag_map getFlags(const token_list& tokens);
 
 PROCESS_INFORMATION StartNotepad(std::string& command);
 

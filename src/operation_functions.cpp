@@ -96,7 +96,7 @@ void newEntryShort(sqlite3*db, int parent_id, const std::string& entry_text)
 }
 
 
-void newEntry(sqlite3* db, token_list& tokens, int parent_id)
+void registerNewEntry(sqlite3* db, const token_list& tokens, int parent_id)
 {
     flag_map flags = getFlags(tokens);
 
