@@ -1,7 +1,23 @@
 #include "operation_functions.hpp"
 
-
 #define SAVE_ERR std::cerr << err.what() << '\n'; throw std::runtime_error("<# Não foi possível salvar a nota.\n");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 inline void handleSaveError(const std::runtime_error& err)
 {
@@ -9,7 +25,8 @@ inline void handleSaveError(const std::runtime_error& err)
     throw std::runtime_error("<# Não foi possível salvar a nota.\n");
 }
 
-// TODO adicionar ao arquivo de utilitários
+// TODO Deletar isso aqui...
+// Pra quê que serve isso aqui mesmo? Eu sequer uso essa parte?
 str_vector::iterator getIterator(str_vector v, const std::string& flag) { return std::find(v.begin(), v.end(), flag); }
 
 int parseInt(const std::string& value)
@@ -21,195 +38,43 @@ int parseInt(const std::string& value)
 
 void deleteTempFile(){}
 
-
-void newEntryLong(sqlite3* db, int parent_id)
-{
-    const std::string filename = "temp.txt";
-    std::string default_insert = "\n< Edite aqui o conteúdo da nota.\n";
-
-    // Lê o conteúdo do arquivo temporário `filename`
-    auto readFile = [filename]() -> std::string
-    {
-        std::ifstream file_r(filename);
-        std::string content((std::istreambuf_iterator<char>(file_r)), std::istreambuf_iterator<char>());
-        return content;
-    };
-
-    // Abre o arquivo temporário, adiciona o texto de placeholder e fecha o mesmo.
-    std::ofstream file_w(filename);
-    file_w << default_insert;
-    file_w.close();
-
-    // Captura a informação de processo do bloco de notas para lidar com os handles.
-    std::string command = "notepad.exe " + filename;
-    PROCESS_INFORMATION process_info = StartNotepad(command);
-
-    // Esperando o processo do bloco de notas ser terminado.
-    WaitForSingleObject(process_info.hProcess, INFINITE);
-
-    CloseHandle(process_info.hProcess);
-    CloseHandle(process_info.hThread);
-
-    // Lê o conteúdo do arquivo temporário.
-    const std::string& entry_text = readFile();
-
-    if(entry_text.empty() || entry_text == default_insert)
-    {
-        std::cout << "< A nota vazia não será adicionada ao banco dados.\n";
-        return;
-    }
-
-    else
-    {
-        // Adicionando do banco de dados.
-        if(!db_WriteNote(db, parent_id, entry_text))
-        {
-            throw std::runtime_error("Houve um problema na tentativa de adicionar a nota ao banco de dados.\n");
-        }
-    }
-
-    if(!DeleteFileW(L"temp.txt"))
-    {
-        std::cerr << "<# Não foi possível excluir o arquivo temporário.";
-    }
-
-}
-
-
-void newEntryShort(sqlite3*db, int parent_id, const std::string& entry_text)
-{
-    std::string filename = "temp.txt";
-
-    if(entry_text.empty())
-    {
-        std::cout << "< A nota vazia não será adicionada ao banco dados.\n";
-        return;
-    }
-
-    else
-    {
-        if(!db_WriteNote(db, parent_id, entry_text))
-        {
-            throw std::runtime_error("Houve um problema na tentativa de adicionar a nota ao banco de dados.\n");
-        }
-    }
-}
-
-
 void registerNewEntry(sqlite3* db, const token_list& tokens, int parent_id)
 {
-    flag_map flags = getFlags(tokens);
+    // flag_map flags = getFlags(tokens);
 
-    const std::string& short_flag_value = std::get<std::string>(flags["-s"]);
-    const bool& is_short_insert = !short_flag_value.empty();
-    const bool& is_long_insert = std::get<bool>(flags["-l"]);
+    // const std::string& short_flag_value = std::get<std::string>(flags["-s"]);
+    // const bool& is_short_insert = !short_flag_value.empty();
+    // const bool& is_long_insert = std::get<bool>(flags["-l"]);
 
-    if(is_long_insert)
-    { // Long entry text insert logic.
+    // if(is_long_insert)
+    // { // Long entry text insert logic.
 
-        try
-        { newEntryLong(db, parent_id); }
+    //     try
+    //     { newEntryLong(db, parent_id); }
 
-        catch(const std::runtime_error& err)
-        { handleSaveError(err); }
-    }
+    //     catch(const std::runtime_error& err)
+    //     { handleSaveError(err); }
+    // }
 
-    else
-    { // Short entry text insert logic.
+    // else
+    // { // Short entry text insert logic.
         
-        try
-        { newEntryShort(db, parent_id, short_flag_value); }
+    //     try
+    //     { newEntryShort(db, parent_id, short_flag_value); }
 
-        catch(const std::runtime_error& err)
-        { handleSaveError(err); }
-    }
+    //     catch(const std::runtime_error& err)
+    //     { handleSaveError(err); }
+    // }
 
 
 }
+
 
 
 
 
 
 // [ ]
-// void newEntry(sqlite3* db, const str_vector& tokens, int parent_id)
-// {
-//     /*
-//         PADRÃO: `-l`, porém:
-//             - Caso a flag `-s` seja adicionada, seguida de um texto, é uma operação de escrita curta.
-//     */
-//     str_vector flags = {"-l", "-s"};
-    
-//     std::string entry_text = "";
-    
-//     if(!tokens.empty() && getIterator(tokens, flags[0]) != tokens.end())
-//     { // Long entry
-
-//         std::string filename = "temp.txt";
-//         std::string default_insert = "\n< Adicionando entrada ao banco de dados.\n";
-
-//         // Lê o conteúdo do arquivo temporário `filename`
-//         auto readFile = [filename]() -> std::string
-//         {
-//             std::ifstream file_r(filename);
-//             std::string content((std::istreambuf_iterator<char>(file_r)), std::istreambuf_iterator<char>());
-//             return content;
-//         };
-
-//         std::ofstream file_w(filename);
-//         file_w << "Edite aqui o conteúdo da nota.\n";
-//         file_w.close();
-
-//         std::string command = "notepad.exe " + filename;
-//         system(command.c_str());
-//         system("pause");
-
-//         // Lendo o conte�do do arquivo tempor�rio.
-//         entry_text = readFile();
-
-//         if(!entry_text.empty() || entry_text != default_insert)
-//         {
-//             std::cout << default_insert;
-//             // Adicionando ao banco de dados.
-//             if(!db_WriteNote(db, parent_id, entry_text))
-//             {
-//                 std::cerr << "<# Não foi possível adicionar a nota ao banco de dados.\n";
-//                 throw std::runtime_error("<# A operação de adicionar a nota ao banco de dados n�o foi conclu�da corretamente.\n");
-//             }
-//         }
-
-//         else{ std::cout << "\n< A nota vazia não será salva.\n"; }
-
-//         // Limpando o conteúdo do arquivo temporário.
-//         file_w << "";
-//     }
-
-
-//     else
-//     {
-//         std::cout << "\nDigite o conteúdo da entrada abaixo.\n> ";
-//         std::getline(std::cin, entry_text);
-
-//         if(!entry_text.empty())
-//         {
-//             std::cout << "\n< Adicionando entrada ao banco de dados.\n";
-//             // Adicionando ao banco de dados.
-//             if(!db_WriteNote(db, parent_id, entry_text))
-//             {
-//                 std::cerr << "<# N�o foi poss�vel adicionar a nota ao banco de dados.\n";
-//                 throw std::runtime_error("<# A opera��o de adicionar a nota ao banco de dados n�o foi conclu�da corretamente.\n");
-//             }
-//         }
-
-//         else{ std::cout << "\n< A nota vazia n�o ser� salva.\n"; }
-
-//         std::clog << "< Opera��o conclu�da.\n";
-//     }
-// }
-
-
-
-// [x]
 // TODO - implementar texto da entrada na edi��o de entradas
 // void rewriteEntry(sqlite3* db, const str_vector& tokens)
 void rewriteEntry(sqlite3* db, const str_vector& tokens, const std::string& entry_txt)
@@ -376,28 +241,75 @@ void ShowHelpMenu()
 }
 
 
-// std::string command = "notepad.exe " + filename;
+void newEntryLong(sqlite3* db, int parent_id)
+{
+    const std::string filename = "temp.txt";
+    std::string default_insert = "\n< Edite aqui o conteúdo da nota.\n";
 
-// STARTUPINFOA startup_info = { sizeof(STARTUPINFO) };
-// PROCESS_INFORMATION process_info; // What we get as an `out` parameter
+    // Lê o conteúdo do arquivo temporário `filename`
+    auto readFile = [filename]() -> std::string
+    {
+        std::ifstream file_r(filename);
+        std::string content((std::istreambuf_iterator<char>(file_r)), std::istreambuf_iterator<char>());
+        return content;
+    };
 
-// ZeroMemory(&startup_info, sizeof(startup_info));
-// startup_info.cb = sizeof startup_info; //  `sizeof` as an operator is possible when its operand is a variable and not a type.
+    // Abre o arquivo temporário, adiciona o texto de placeholder e fecha o mesmo.
+    std::ofstream file_w(filename);
+    file_w << default_insert;
+    file_w.close();
 
-// if( !CreateProcessA
-// (
-//     nullptr,        // lpApplicationName
-//     &command[0],    // lpCommandLine
-//     nullptr,        // lpProccessAttributes
-//     nullptr,        // lpThreadAttributes
-//     FALSE,          // bInheritHandles
-//     0,              // dwCreationFlags
-//     nullptr,        // lpEnvironment
-//     nullptr,        // lpCurrentDirectory
-//     &startup_info,  // lpStartupInfo
-//     &process_info   // lpProccessInfo
-// ))
-// {
-//     std::cerr << "Não foi possível abrir o bloco de notas.";
-//     return;
-// }
+    // Captura a informação de processo do bloco de notas para lidar com os handles.
+    std::string command = "notepad.exe " + filename;
+    PROCESS_INFORMATION process_info = StartNotepad(command);
+
+    // Esperando o processo do bloco de notas ser terminado.
+    WaitForSingleObject(process_info.hProcess, INFINITE);
+
+    CloseHandle(process_info.hProcess);
+    CloseHandle(process_info.hThread);
+
+    // Lê o conteúdo do arquivo temporário.
+    const std::string& entry_text = readFile();
+
+    if(entry_text.empty() || entry_text == default_insert)
+    {
+        std::cout << "< A nota vazia não será adicionada ao banco dados.\n";
+        return;
+    }
+
+    else
+    {
+        // Adicionando do banco de dados.
+        if(!db_WriteNote(db, parent_id, entry_text))
+        {
+            throw std::runtime_error("Houve um problema na tentativa de adicionar a nota ao banco de dados.\n");
+        }
+    }
+
+    if(!DeleteFileW(L"temp.txt"))
+    {
+        std::cerr << "<# Não foi possível excluir o arquivo temporário.";
+    }
+
+}
+
+
+void newEntryShort(sqlite3*db, int parent_id, const std::string& entry_text)
+{
+    std::string filename = "temp.txt";
+
+    if(entry_text.empty())
+    {
+        std::cout << "< A nota vazia não será adicionada ao banco dados.\n";
+        return;
+    }
+
+    else
+    {
+        if(!db_WriteNote(db, parent_id, entry_text))
+        {
+            throw std::runtime_error("Houve um problema na tentativa de adicionar a nota ao banco de dados.\n");
+        }
+    }
+}

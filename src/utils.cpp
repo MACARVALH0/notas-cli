@@ -55,6 +55,7 @@ std::string enumToString(OpTokenType type)
 
 
 
+
 Operation getOperation(std::string token)
 {
     /*
@@ -89,71 +90,6 @@ Operation getOperation(std::string token)
     else{ return UNKNOWN_op; }
 }
 
-
-flag_map getFlags(const token_list& tokens)
-{
-    flag_map flags =
-    {
-        {"-s", ""},
-        {"-l", true}
-    };
-
-    size_t tokens_len = tokens.size();
-    int i = 0;
-
-    while(i < tokens_len)
-    {
-        Token token = tokens[i];
-
-        if(token.type == OpTokenType::FLAG)
-        { // Should only check for flags
-
-            if(token.content == "-s")
-            {
-                try
-                {
-                    i++;
-
-                    if(i > tokens_len && tokens[i].type != OpTokenType::FLAG)
-                    throw std::out_of_range("Não foi possível encontrar um argumento para a flag `-s`.");
-
-                    flags["-s"] = tokens[i].content;
-                }
-
-                catch (const std::range_error & err)
-                {
-                    std::cerr << "<# A flag `-s` exige um argumento.\n" << err.what() << '\n';
-                    flags["-l"] = true;
-                }
-            }
-
-            else if (token.content == "-l")
-            {
-               flags["-l"] = true; 
-            }
-        }
-    }
-
-    return flags;
-
-    /*
-        -> LEMBRAR
-        Funções importantes para objetos `std::variant<a, b>`:
-
-            1. `std::holds_alternative<T>(variant : value)`:
-            - Verifica o valor armazenado.
-            - Checa se o valor armazenado em `variant` é do tipo T.
-
-            2. `std::get<T>(variant: T value)`:
-            - Acessa o valor mas lança exceção se o tipo estiver incorreto.
-
-            3. `std::get_if<T>(&variant: &value)`:
-            - Acessa o valor de forma mais segura, retornado um nullptr se o tipo estiver incorreto.
-        
-            4. `std::visit(visitor: function, variant: auto value)`:
-            - Aplica uma lógica automaticamente, com base no tipo armazenado.
-    */
-}
 
 
 

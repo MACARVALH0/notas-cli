@@ -17,7 +17,6 @@ void processTokenOp(Keyword& keyword, const token_list& tokens, sqlite3* db)
     // Tokens de operação (sem o nome da operação).
     token_list op_tokens(tokens.begin()+1, tokens.end()); 
 
- 
 
 
 
@@ -42,21 +41,8 @@ void processTokenOp(Keyword& keyword, const token_list& tokens, sqlite3* db)
             catch(const std::exception& err)
             {
                 std::cerr << err.what() << '\n';
+                // Maybe deal with deleting keyword register in database if it was its first entry.
             }
-            
-
-    //         {
-    //             if(!db_DefineKeyword(db, keyword))
-    //             {
-    //                 std::cerr << "<# Não foi possível registrar a palavra-chave no banco de dados.\n";
-    //                 break;
-    //             }
-    //         }
-
-    //         try{ newEntry(db, op_tokens, keyword_id); }
-
-    //         catch(std::runtime_error err)
-    //         { std::cerr << err.what() << "\n"; }
 
 
         break;
