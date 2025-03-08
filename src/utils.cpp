@@ -55,7 +55,6 @@ std::string enumToString(OpTokenType type)
 
 
 
-
 Operation getOperation(std::string token)
 {
     /*

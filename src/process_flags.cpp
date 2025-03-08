@@ -3,18 +3,28 @@
 ////////// DATA //////////
 
 using flagArgVariant = std::variant<std::string, bool>;
+using flag_map = std::map<std::string, Flag>;
 
+/**
+ *  @brief Estrutura de dados de uma Flag.
+ * Armazena um `name` e um `arg`,
+ * que representam, respectivamente, a qualidade de alguma configuração e seu argumento.
+ * 
+ *  @example `Flag flag("SHORT", "Texto de escrita/reescrita curta.")`
+ */
 struct Flag
 {
     std::string name;
     flagArgVariant arg;
 
     Flag() = default;
-    Flag(std::string n, std::string a) : name(n), arg(a) {}
-    Flag(std::string n, bool a) : name(n), arg(a) {}
+    Flag(std::string n, flagArgVariant a) : name(n), arg(a) {}
 };
 
 
+/** 
+ *  @brief Uma abstração que representa as regras de detecção de flags.
+ */
 struct FlagRule
 {
     std::unordered_set<std::string> group;
@@ -24,10 +34,13 @@ struct FlagRule
 };
 
 
-
+/**
+ *  @brief Uma classe que armazena um mapa contendo o conjunto de flags recuperadas na linha de comando,
+ * conectadas na relação chave-valor a uma string que indica sua função semântica.
+ */
 class FlagSet
 {
-    std::map<std::string, Flag> map{};
+    flag_map map{};
     
     void setSize(int size)
     {
@@ -40,42 +53,54 @@ class FlagSet
         // Construtor padrão da classe.
         FlagSet() = default;
 
+        flag_map retrieve(){ return map; }
+
         void setFlag(const Flag& flag, const std::string& config_name)
         {
-            if(map.find(config_name) != map.end()) throw std::runtime_error("<# Múltiplas flags de definção do modo de escrita/reescrita da entrada.\n");
+            if(map.find(config_name) != map.end()) throw std::runtime_error("<# Múltiplas flags de definição do modo de escrita/reescrita da entrada.\n");
             else map[config_name] = flag;
         }
 
 };
 
 
-
-
-
-
 ////////// FUNCTIONS //////////
 
 /**
- *  @brief Retorna um elemento (bool/string) para ocupar o espaço de "argumento" da flag.
- *  @return `bool` ou `std::string` correspondente ao atributo de "argumento" da flag.
+ *  @brief      Retorna um elemento (bool/string) para ocupar o espaço de "argumento" da flag.
+ *  @param rule Elemento `FlagRule` cuja regra bateu com a busca.
+ *  @param it   Iterador apontando para o elemento, da lista de tokens, que combina com a regra encontrada.
+ *  @param end  Iterador que aponta para o final da lista de tokens.
+ *  @return     `bool` ou `std::string` correspondente ao atributo de "argumento" da flag.
  */
-flagArgVariant getFlagArgument (const FlagRule& rule, auto& next_it, auto& end)
+flagArgVariant getFlagArgument (const FlagRule& rule, const auto& it, const auto& end)
 {
+    // Iterador apontando para o próximo item.
+    auto next_it = it+1 != end ? it+1 : it;
+
+    /*
+        Se `rule.needs_argument == std::nullopt`, então o argumento é opcional.
+        Logo, segue-se a análise de preenchimento opcional, que retorna:
+        a. O token seguinte, caso o próximo item seja do tipo STRING, ou
+        b. Uma string vazia, caso a condição anterior não seja atendida.
+    */
     if(rule.needs_argument == std::nullopt){ return (next_it != end && next_it->type == OpTokenType::STRING) ? next_it->content : ""; }
 
+    // Caso a regra não exija argumento, retorna uma string vazia.
     if(!rule.needs_argument){ return std::string(""); }
 
+    // FIXME Seria mais adequado que a função retornasse um erro caso a flag necessitasse de um argumento e não o encontrasse.
     if(rule.needs_argument)
     {
         if(next_it != end && next_it->type == OpTokenType::STRING)
-        { return next_it->content; }
+        { return next_it->content; } // Retorna std::string
 
-        else true;
+        else true; // Retorna booleano
     }
 };
 
 
-FlagSet getFlags(const token_list& tokens)
+flag_map getFlags(const token_list& tokens)
 {
     // Define o objeto de set de flags.
     FlagSet set;
@@ -86,7 +111,6 @@ FlagSet getFlags(const token_list& tokens)
         { { "-s", "--short" },  "SHORT",    "SIZE",    true },
         { { "-l", "--long"  },  "LONG",     "SIZE" }
     };
-
 
     auto token_it = tokens.begin(); // Iterador que percorrerá o vetor.
     const auto end = tokens.end();  // Cache do iterador marcando o final do vetor.
@@ -103,55 +127,27 @@ FlagSet getFlags(const token_list& tokens)
                 // Caso o conteúdo do token esteja incluso em algum grupo de `rules`.
                 if(rule.group.find(token_it->content) != rule.group.end())
                 {
-                    // TODO Atualmente estou aqui!
-                    // Iterador apontando para o próximo item.
-                    auto next_it = token_it+1 != end ? token_it+1 : token_it;
+                    // Armazena o atributo `arg` da flag. 
+                    flagArgVariant flag_argument = getFlagArgument(rule, token_it, end);
 
-                    flagArgVariant flag_argument = getFlagArgument(rule, next_it, end);
+                    // Declara a flag baseado na regra testada.
+                    const Flag flag(rule.value, flag_argument);
 
-                    /*
-                        TODO:
-                        
-                        - Entender como exatamente se utiliza `std::visit` e confirmar se vale à pena seguir com essa abordagem.
-                        - Criar Flag com nome e argumento (Questão do momento, lidar com tipo bool ou string);
-                        - Executar set.setFlags para adicionar Flag criada ao map de flags. 
-                    */
+                    // Adiciona a flag atual ao conjunto de FlagSet.
+                    set.setFlag(flag, rule.config_name);
+                    
+                    // Retorna os valores armazenados no set de flags.
+                    return set.retrieve();
                 }
 
-                else 
+                else
                 {
                     ErrorMsg err;
                     err << "A flag `" << token_it->content << "` é inválida ou não existe neste contexto.\n";
-                    throw std::runtime_error(err.get());
+                    std::cerr << err.get();
+                    // throw std::runtime_error(err.get()); // Off For debug
                 }
             }
         }
     }
-
-
-
-
-
-
-
-
-
-
-    // // Organizando e definindo flags.
-    // while(token_it != end)
-    // {
-    //     if(token_it->type != OpTokenType::FLAG) token_it++; 
-
-    //     // Hardcoded, só um placeholder pra organizar as ideias.
-    //     else
-    //     {
-    //         if(token_it->content == "-s" || token_it->content == "--short")
-    //         {
-
-    //             if(++token_it == end || (token_it+1)->type != OpTokenType::STRING) throw std::runtime_error("Falta argumentos para a criação da entrada.\nFormato: <-s/--short> [Texto da entrada].");
-            
-    //         }
-
-    //     }
-    // }
 }
