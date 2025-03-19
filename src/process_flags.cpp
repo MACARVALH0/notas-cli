@@ -1,70 +1,7 @@
 #include "utils.hpp"
-
-////////// DATA //////////
-
-using flagArgVariant = std::variant<std::string, bool>;
-using flag_map = std::map<std::string, Flag>;
-
-/**
- *  @brief Estrutura de dados de uma Flag.
- * Armazena um `name` e um `arg`,
- * que representam, respectivamente, a qualidade de alguma configuração e seu argumento.
- * 
- *  @example `Flag flag("SHORT", "Texto de escrita/reescrita curta.")`
- */
-struct Flag
-{
-    std::string name;
-    flagArgVariant arg;
-
-    Flag() = default;
-    Flag(std::string n, flagArgVariant a) : name(n), arg(a) {}
-};
+#include "process_flags.hpp"
 
 
-/** 
- *  @brief Uma abstração que representa as regras de detecção de flags.
- */
-struct FlagRule
-{
-    std::unordered_set<std::string> group;
-    std::string value;
-    std::string config_name;
-    std::optional<bool> needs_argument;
-};
-
-
-/**
- *  @brief Uma classe que armazena um mapa contendo o conjunto de flags recuperadas na linha de comando,
- * conectadas na relação chave-valor a uma string que indica sua função semântica.
- */
-class FlagSet
-{
-    flag_map map{};
-    
-    void setSize(int size)
-    {
-        // throw std::out_of_range("Houve uma tentativa de atualizar o tipo de tamanho da entrada com um valor inválido.");
-    }
-
-
-    public:
-
-        // Construtor padrão da classe.
-        FlagSet() = default;
-
-        flag_map retrieve(){ return map; }
-
-        void setFlag(const Flag& flag, const std::string& config_name)
-        {
-            if(map.find(config_name) != map.end()) throw std::runtime_error("<# Múltiplas flags de definição do modo de escrita/reescrita da entrada.\n");
-            else map[config_name] = flag;
-        }
-
-};
-
-
-////////// FUNCTIONS //////////
 
 /**
  *  @brief      Retorna um elemento (bool/string) para ocupar o espaço de "argumento" da flag.
@@ -73,7 +10,7 @@ class FlagSet
  *  @param end  Iterador que aponta para o final da lista de tokens.
  *  @return     `bool` ou `std::string` correspondente ao atributo de "argumento" da flag.
  */
-flagArgVariant getFlagArgument (const FlagRule& rule, const auto& it, const auto& end)
+static flag_arg getFlagArgument (const FlagRule& rule, const auto& it, const auto& end)
 {
     // Iterador apontando para o próximo item.
     auto next_it = it+1 != end ? it+1 : it;
@@ -100,7 +37,7 @@ flagArgVariant getFlagArgument (const FlagRule& rule, const auto& it, const auto
 };
 
 
-flag_map getFlags(const token_list& tokens)
+flag_setup_map getFlagSetup(const std::vector<Token>& tokens)
 {
     // Define o objeto de set de flags.
     FlagSet set;
@@ -108,8 +45,8 @@ flag_map getFlags(const token_list& tokens)
     // Definição da minha estrutura de regras.
     std::vector<FlagRule> rules =
     {
-        { { "-s", "--short" },  "SHORT",    "SIZE",    true },
-        { { "-l", "--long"  },  "LONG",     "SIZE" }
+        { { "-s", "--short" },  FlagValue::SHORT,    Configuration::SIZE,    true },
+        { { "-l", "--long"  },  FlagValue::LONG,     Configuration::SIZE }
     };
 
     auto token_it = tokens.begin(); // Iterador que percorrerá o vetor.
@@ -128,7 +65,7 @@ flag_map getFlags(const token_list& tokens)
                 if(rule.group.find(token_it->content) != rule.group.end())
                 {
                     // Armazena o atributo `arg` da flag. 
-                    flagArgVariant flag_argument = getFlagArgument(rule, token_it, end);
+                    flag_arg flag_argument = getFlagArgument(rule, token_it, end);
 
                     // Declara a flag baseado na regra testada.
                     const Flag flag(rule.value, flag_argument);
@@ -149,5 +86,15 @@ flag_map getFlags(const token_list& tokens)
                 }
             }
         }
+    }
+}
+
+
+std::string toString_Configuration(Configuration config)
+{
+    switch(config)
+    {
+        case Configuration::SIZE: return "SIZE"; break;
+        default: return "UNKNOWN";
     }
 }

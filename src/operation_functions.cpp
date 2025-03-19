@@ -3,22 +3,6 @@
 #define SAVE_ERR std::cerr << err.what() << '\n'; throw std::runtime_error("<# Não foi possível salvar a nota.\n");
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 inline void handleSaveError(const std::runtime_error& err)
 {
     std::cerr << err.what() << '\n';
@@ -29,45 +13,78 @@ inline void handleSaveError(const std::runtime_error& err)
 // Pra quê que serve isso aqui mesmo? Eu sequer uso essa parte?
 str_vector::iterator getIterator(str_vector v, const std::string& flag) { return std::find(v.begin(), v.end(), flag); }
 
-int parseInt(const std::string& value)
-{
-    try                             { return std::stoi(value); }
-    catch(std::invalid_argument& e) { return -1; }
-    catch(std::out_of_range& e)     { return -1; }
-}
+
 
 void deleteTempFile(){}
 
-void registerNewEntry(sqlite3* db, const token_list& tokens, int parent_id)
+
+/**
+ * @brief A função universal de configuração contextual de flags envolvidas na operação, seja de escrita (NEW), reescrita (REWRITE), etc.
+ * @param flag_set O mapa de itens configuração-flag recuperados da linha de comando.
+ * @param ctx O vetor de configurações contextuais da operação (basicamente as tags envolvidas, se são obrigatórias, etc).
+ */
+void setupFlagSettings(const flag_setup_map& flag_set, std::vector<ContextConfiguration>& ctx)
 {
-    // flag_map flags = getFlags(tokens);
+    auto ctx_it = ctx.begin();
+    auto ctx_end = ctx.end();
 
-    // const std::string& short_flag_value = std::get<std::string>(flags["-s"]);
-    // const bool& is_short_insert = !short_flag_value.empty();
-    // const bool& is_long_insert = std::get<bool>(flags["-l"]);
+    while(ctx_it != ctx_end)
+    {
+        // Define a configuração analisada.
+        const auto config = ctx_it->configuration;
 
-    // if(is_long_insert)
-    // { // Long entry text insert logic.
+        if(flag_set.find(config) != flag_set.end())
+        {
+            /*
+                Define a flag para a configuração analisada.
+                Esta flag é o valor de flag_set cuja chave é o nome da configuração apontada em `ctx`.
+            */
+            ctx_it->flag = flag_set.at(config);
+        }
 
-    //     try
-    //     { newEntryLong(db, parent_id); }
+        // Caso a configuração não seja encontrada no `flag_set`, mas ainda assim seja obrigatória.
+        else if(ctx_it->obligatory)
+        {
+            ErrorMsg err;
+            err << "A propriedade obrigatória `" << toString_Configuration(config) << "` não foi definida.";
+            throw std::runtime_error(err.get()); // Lança um erro.
+        }
 
-    //     catch(const std::runtime_error& err)
-    //     { handleSaveError(err); }
-    // }
-
-    // else
-    // { // Short entry text insert logic.
-        
-    //     try
-    //     { newEntryShort(db, parent_id, short_flag_value); }
-
-    //     catch(const std::runtime_error& err)
-    //     { handleSaveError(err); }
-    // }
-
-
+        ctx_it++;
+    }
 }
+
+
+void registerNewEntry(sqlite3* db, int parent_id, const std::vector<Token>& tokens, const flag_setup_map& flag_set)
+{
+    std::cout << "<! Sucesso ao entrar em `registerNewEntry`.\n";
+
+    std::vector<ContextConfiguration> ctx =
+    {
+        {Configuration::SIZE, false}
+    };
+
+    setupFlagSettings(flag_set, ctx);
+    std::cout << "<! setupFlagSettings` executado com sucesso.\n";
+
+    
+    // Talvez faça sentido organizar melhor essa parte depois, mas agora serei mais direto.
+
+    const Flag SIZE_FLAG = flag_set.at(Configuration::SIZE);
+    std::cout << "<! `SIZE_FLAG` definido.\n";
+
+    // Caso a flag `-s` ou `--short` estejam presentes na linha de comando.
+    if(SIZE_FLAG.value == FlagValue::SHORT)
+    { newEntryShort(db, parent_id, std::get<std::string>(SIZE_FLAG.arg)); }
+
+    // Caso a flag <`-l`|`--long`> esteja presente na linha de comando
+    // ou a tag <`-s`|`--short`> não esteja definida.
+    else
+    { newEntryLong(db, parent_id); }
+}
+
+
+
 
 
 
@@ -297,6 +314,8 @@ void newEntryLong(sqlite3* db, int parent_id)
 
 void newEntryShort(sqlite3*db, int parent_id, const std::string& entry_text)
 {
+    std::cout << "<! Entrou com sucesso em `newEntryShort`.\n";
+
     std::string filename = "temp.txt";
 
     if(entry_text.empty())
@@ -307,6 +326,7 @@ void newEntryShort(sqlite3*db, int parent_id, const std::string& entry_text)
 
     else
     {
+        std::cout << "<! Executando db_WriteNote.\n";
         if(!db_WriteNote(db, parent_id, entry_text))
         {
             throw std::runtime_error("Houve um problema na tentativa de adicionar a nota ao banco de dados.\n");

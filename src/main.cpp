@@ -16,8 +16,6 @@
 
 void startKeywordInterface(sqlite3* db, Keyword& keyword)
 {
-    // int keyword_id = id; // Cache do id da palavra-chave.2
-
     // Mapeia as entradas em pares chave-valor no padrão id-título.
     entry_map entries = keyword.exists() ? getKeywordResults(db, keyword.id) : entry_map{};
 
@@ -39,10 +37,13 @@ void startKeywordInterface(sqlite3* db, Keyword& keyword)
             std::vector<Token> tokens = tokenize(command_input);
 
             // Debug: Exibe tokens encontrados.    
-            DEBUG_showTokens(tokens);
             // TODO: Adicionar um filtro de exclusão de tokens repetidos (talvez).
+            // Talvez mudar a estrutura de dados para uma que não aceite repetições...
+            DEBUG_showTokens(tokens);
 
-            processTokenOp(keyword, tokens, db);
+            processTokens(keyword, tokens, db);
+
+            entries = getKeywordResults(db, keyword.id);
         }
 
         catch(const std::exception& e)

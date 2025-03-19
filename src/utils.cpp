@@ -1,13 +1,13 @@
 #include "utils.hpp"
 
-void DEBUG_showTokens(const token_list& tokens)
+void DEBUG_showTokens(const std::vector<Token>& tokens)
 {
      // Debug
-    std::cout << "Token list:\n";
+    std::cout << "\nToken list:\n";
     size_t max_size_a = 12; // Tamanho máximo que deve ser mantido entre a string do tipo de token e o caractere de separação `|`.
     for(Token token : tokens)
     {
-        std::string enum_string = enumToString(token.type); // Recebe uma string nomeando o tipo de token.
+        std::string enum_string = toString_OpTokenType(token.type); // Recebe uma string nomeando o tipo de token.
         int blank_space_size = max_size_a - enum_string.size(); // Encontra a quantidade de espaços a serem adicionados entre o tipo de token e o caractere `|`.
 
         // Informa o token.
@@ -40,8 +40,15 @@ std::string& trim(std::string& text)
 }
 
 
+int parseInt(const std::string& value)
+{
+    try                             { return std::stoi(value); }
+    catch(std::invalid_argument& e) { return -1; }
+    catch(std::out_of_range& e)     { return -1; }
+}
 
-std::string enumToString(OpTokenType type)
+
+std::string toString_OpTokenType(OpTokenType type)
 {
     switch (type)
     {
@@ -52,7 +59,6 @@ std::string enumToString(OpTokenType type)
         default: return "Inesperado";
     };
 }
-
 
 
 Operation getOperation(std::string token)

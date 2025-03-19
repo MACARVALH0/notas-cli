@@ -3,12 +3,7 @@
 
 #include <iostream>
 #include <sstream>
-#include <string>
-#include <string_view>
-#include <vector>
-#include <map>
-#include <variant>
-#include <unordered_set>
+
 
 #include <fstream>
 #include <algorithm>
@@ -17,54 +12,11 @@
 #include <memory>
 #include <windows.h>
 
+#include "global_structures.hpp"
 #include "db_ops.hpp"
 
 
-enum Operation
-{
-    NEW_op,
-    REWRITE_op,
-    DELETE_op,
-    EXIT_op,
-    HELP_op,
-    UNKNOWN_op
-};
 
-enum class OpTokenType
-{
-    INITIAL,
-    UNKNOWN,
-    IDENTIFIER,
-    FLAG,
-    STRING
-};
-
-
-class Keyword
-{
-    public:
-
-        std::string name;
-        int id;
-        
-        // Construtor padrão.
-        Keyword(std::string name, int id)
-        : name(std::move(name)), id(id) {}
-
-        // Retorna `true` se a keyword possui um id válido registrado no banco de dados. Caso contrário, retorna `false`.
-        bool exists(){ return id >= 0; }
-};
-
-struct Token
-{
-    std::string content;
-    OpTokenType type;
-
-    int col;
-
-    Token(std::string content, OpTokenType type, int col)
-    : content(std::move(content)), type(type), col(col) {}
-};
 
 class ErrorMsg
 {
@@ -95,7 +47,7 @@ inline bool includes(const std::vector<T>& v, const T& element)
 { return std::find(v.begin(), v.end(), element) != v.end(); }
 
 
-void DEBUG_showTokens(const token_list& tokens);
+void DEBUG_showTokens(const std::vector<Token>& tokens);
 
 
 template <typename T>
@@ -115,13 +67,12 @@ std::vector<T> splice(std::vector<T> v, size_t start_index, size_t count)
 };
 
 
-using str_vector = std::vector<std::string>;
-using token_list = std::vector<Token>;
-// using flag_map = std::map<Flag, std::pair<bool, std::string>>;
 
 std::string& trim(std::string& text);
 
-std::string enumToString(OpTokenType type);
+int parseInt(const std::string& value);
+
+std::string toString_OpTokenType(OpTokenType type);
 
 void showEntries(entry_map& entries, const std::string& keyword);
 
@@ -142,7 +93,7 @@ std::vector<Token> tokenize(std::string& line);
 /**
  * @brief Processa operações específicas de cada comando.
  */
-void processTokenOp(Keyword& keyword, const token_list& tokens, sqlite3* db);
+void processTokens(Keyword& keyword, const std::vector<Token>& tokens, sqlite3* db);
 
 // flag_map getFlags(const token_list& tokens);
 

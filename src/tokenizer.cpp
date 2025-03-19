@@ -168,7 +168,7 @@ static std::string processStringCase(std::string& line, std::string::iterator& i
 */
 std::vector<Token> tokenize(std::string& line)
 {
-    std::cout << "<! Iniciando tokenizador do comando.\n";
+    std::cout << "\n<! Iniciando tokenizador do comando.\n";
 
     // Vetor que armazenará os tokens gerados.
     std::vector<Token> tokens{};

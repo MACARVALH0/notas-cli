@@ -1,12 +1,15 @@
 #include "utils.hpp"
 #include "operation_functions.hpp"
+#include "process_flags.hpp"
 
-void processTokenOp(Keyword& keyword, const token_list& tokens, sqlite3* db)
+void processTokens(Keyword& keyword, const std::vector<Token>& tokens, sqlite3* db)
 {
-    // Captura o tipo de operação a ser realizada baseado no conteúdo do primeiro token da lista.
+    std::cout << "<! Iniciando `processTokens`.\n";
+
+    // 1. Captura o tipo de operação a ser realizada baseado no conteúdo do primeiro token da lista.
     const Operation op = getOperation(tokens[0].content);
 
-    // Tratamento de erro preliminar: Problemas que não devem ser alcançados, mas previne caso aconteçam.
+    // 2. Tratamento de erro preliminar: Problemas que não devem ser alcançados, mas previne caso aconteçam.
     if(tokens[0].type != OpTokenType::IDENTIFIER || op == UNKNOWN_op)
     {
         ErrorMsg err;
@@ -14,20 +17,27 @@ void processTokenOp(Keyword& keyword, const token_list& tokens, sqlite3* db)
         throw std::runtime_error(err.get());
     }
 
-    // Tokens de operação (sem o nome da operação).
-    token_list op_tokens(tokens.begin()+1, tokens.end()); 
+    // 3. Organiza tokens de operação (sem o nome da operação, ou seja, sem o primeiro item).
+    std::vector<Token> op_tokens(tokens.begin()+1, tokens.end()); 
+    std::cout << "<! `op_tokens` definido.\n";
 
+    // 4. Recebe lista de configurações de flags definidas.
+    flag_setup_map flag_setup = getFlagSetup(op_tokens);
+    std::cout << "<! `flag_setup` definido.\n";
 
-
-
+    // 5. Executa a operação adequada baseado em `Operation op`.
     switch(op)
     {
+        //////////////////// NEW: Operação de criação de nova nota.
         case NEW_op:
 
+            // 1. Analisa se já existe um registro no banco de dados com a palavra-chave fornecida.
             if(!keyword.exists())
             {
+                // 1a. Registra a palavra-chave no banco de dados.
                 keyword.id = db_DefineKeyword(db, keyword.name);
 
+                // 1b. Caso ainda não exista um registro no banco de dados com a palavra-chave após executada a operação de inserção, houve um problema com o acesso ao banco de dados.
                 if(!keyword.exists())
                 {
                     ErrorMsg err;
@@ -36,17 +46,20 @@ void processTokenOp(Keyword& keyword, const token_list& tokens, sqlite3* db)
                 }
             }
 
-            try { registerNewEntry(db, tokens, keyword.id); }
+            std::cout << "<! Iniciando `registerNewEntry`.\n";
+            
+            // 2. Tentativa de executar a operação de criação de registro.
+            try { registerNewEntry(db, keyword.id, tokens, flag_setup); }
             
             catch(const std::exception& err)
             {
                 std::cerr << err.what() << '\n';
-                // Maybe deal with deleting keyword register in database if it was its first entry.
+                // TODO Maybe deal with deleting keyword register in database if it was its first entry and it failed.
             }
-
 
         break;
     }
+}
 
 
 
