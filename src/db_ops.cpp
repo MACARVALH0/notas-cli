@@ -1,22 +1,69 @@
 #include "db_ops.hpp"
 
-db_ptr getDatabasePtr()
+static int setupDbTables(sqlite3* db)
+{
+    std::vector<std::string> queries =
+    {
+        R"(
+            CREATE TABLE IF NOT EXISTS keywords
+            (
+                id INTEGER PRIMARY KEY,
+                name TEXT
+            );
+        )",
+
+        R"(
+            CREATE TABLE IF NOT EXISTS results
+            (
+                id INTEGER PRIMARY KEY,
+                parent_id INTEGER,
+                content TEXT,
+
+                FOREIGN KEY (parent_id) REFERENCES keywords(id),
+                UNIQUE (id, parent_id)
+            );
+        )"
+    };
+
+    for(const std::string& query : queries)
+    {
+        statement_ptr statement(nullptr);
+        sqlite3_stmt* s_raw = nullptr;
+
+        const int statement_prepare_result = sqlite3_prepare_v2(db, query.c_str(), -1, &s_raw, nullptr);
+
+        if(statement_prepare_result != SQLITE_OK) { return 0; }
+
+        statement.reset(s_raw);
+
+        const int step_result = sqlite3_step(statement.get());
+
+        if(step_result != SQLITE_DONE)
+        { return 0; }
+    }
+
+    return 1;
+}
+
+db_ptr getDatabasePtr(const std::string& path)
 {
     sqlite3* db_raw = nullptr;
 
-    // Trying to open database and bind it to its respective pointer
-    const int db_open_result = sqlite3_open("data/data.db", &db_raw);
+    // Trying to open database and bind it to its respective pointer.
+    const int db_open_result = sqlite3_open(path.c_str(), &db_raw);
     if(db_open_result != SQLITE_OK)
     {
         std::string error_msg = "<# Não foi possível abrir o banco de dados corretamente: \n";
         error_msg.append(sqlite3_errmsg(db_raw));
         sqlite3_close(db_raw);
-        throw std::runtime_error(error_msg); // Throw runtime_error
+        throw std::runtime_error(error_msg); // Throw runtime_error.
     }
+
+    // Antes de entregar o ponteiro, executa a criação de tabelas.
+    setupDbTables(db_raw);
 
     return db_ptr(db_raw);
 }
-
 
 
 int getKeywordId(sqlite3* db, const std::string& keyword)

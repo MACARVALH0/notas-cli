@@ -11,7 +11,7 @@ using statement_ptr = std::unique_ptr<sqlite3_stmt, statement_deleter>;
 using db_ptr = std::unique_ptr<sqlite3, db_ptr_deleter>;
 using entry_map = std::map<int, std::string>;
 
-db_ptr getDatabasePtr();
+db_ptr getDatabasePtr(const std::string& path);
 int getKeywordId(sqlite3* db, const std::string& keyword);
 entry_map getKeywordResults(sqlite3* db, int id);
 std::string getEntryContent(sqlite3* db, u_int entry_id);

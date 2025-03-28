@@ -46,10 +46,7 @@ void startKeywordInterface(sqlite3* db, Keyword& keyword)
         }
 
         catch(const std::exception& e)
-        {
-            std::cerr << e.what() << '\n';
-            break;
-        }
+        { std::cerr << e.what() << '\n'; }
         
     }
 }
@@ -63,11 +60,20 @@ int main()
     // Declara um ponteiro do tipo `db_ptr` (std::unique_ptr<sqlite3, db_ptr_deleter>)
     db_ptr db = nullptr;
 
+    // Caminho do diretório do banco de dados.
+    const std::string db_directory = "data";
+    const std::string db_filename = "data";
+    const std::string full_path = db_directory+"/"+db_filename+".db";
+
+    // Verifica se o diretório existe; se não, cria um.
+    if (!std::filesystem::exists(db_directory))
+    { std::filesystem::create_directories(db_directory); }
+
     // Tenta acessar o banco de dados
     try
     {
         // Em caso de sucesso, retorna um ponteiro inteligente do tipo `db_ptr`
-        db = getDatabasePtr();
+        db = getDatabasePtr(full_path);
         std::cout << "Conexão bem sucedida com o banco de dados.\n\n";
     }
 
@@ -78,10 +84,6 @@ int main()
         system("pause"); // Pausa o console para leitura da mensagem de erro.
         return 1;
     }
-
-    Keyword keyword("", -1);
-    // 
-    //  = -1;        // id da palavra-chave no banco.
 
 
     std::cout << "< Bem-vindo à aplicação de notas. >\n";
@@ -113,7 +115,7 @@ int main()
     }
 
     // Fim da execução do programa. Pausa o console e aguarda input do usuário para fechamento.
-    std::cout << "Encerrando programa.\n";
+    std::cout << "Encerrando a aplicação.\n";
     system("pause");
     return 0;
 }
