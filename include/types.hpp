@@ -4,9 +4,12 @@
 #include <string_view>
 #include <vector>
 #include <map>
-#include <variant>
 #include <unordered_set>
+#include <variant>
+#include <optional>
+#include <memory>
 
+typedef unsigned int u_int;
 
 // GLOBAL ENUMERATORS
 

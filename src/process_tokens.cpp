@@ -2,7 +2,7 @@
 #include "operation_functions.hpp"
 #include "process_flags.hpp"
 
-void processTokens(Keyword& keyword, const std::vector<Token>& tokens, sqlite3* db)
+void processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db)
 {
     std::cout << "<! Iniciando `processTokens`.\n";
 
@@ -53,68 +53,36 @@ void processTokens(Keyword& keyword, const std::vector<Token>& tokens, sqlite3* 
             
             catch(const std::exception& err)
             {
-                std::cerr << err.what() << '\n';
+                std::cerr << err.what();// << '\n';
                 // TODO Maybe deal with deleting keyword register in database if it was its first entry and it failed.
+            }
+
+        break;
+
+        //////////////////// REWRITE: Operação de reescrita de uma nota.
+        case REWRITE_op:
+
+            if(!keyword.exists())
+            {
+                ErrorMsg err;
+                err << "A palavra-chave " << keyword.name << " não está registrada e não possui entradas para serem reescritas.";
+            }
+
+            else
+            {
+                // TODO try-catch
+                try
+                { rewriteEntry(db, keyword.id, tokens, flag_setup); }
+
+                catch(std::runtime_error& err)
+                {
+                    std::cerr << err.what();
+                }
             }
 
         break;
     }
 }
-
-
-
-    // switch(operation)
-    // {
-    //     case NEW_op:
-
-    //         if(keyword_exists)
-    //         {
-    //             if(!db_DefineKeyword(db, keyword))
-    //             {
-    //                 std::cerr << "<# Não foi possível registrar a palavra-chave no banco de dados.\n";
-    //                 break;
-    //             }
-    //         }
-
-    //         try{ newEntry(db, op_tokens, keyword_id); }
-
-    //         catch(std::runtime_error err)
-    //         { std::cerr << err.what() << "\n"; }
-
-    //     break;
-        
-    // }
-    
-    // 	case NEW_op:
-            
-    //         if(!keyword_exists)
-    //         {
-    //             std::cerr << "\n< Registrando keyword.\n";
-    //             keyword_id = db_DefineKeyword(db, keyword);
-
-    //             if(keyword_id > 0)
-    //             { std::cout << "Nova palavra-chave registrada sob o id [" << keyword_id << "].\n\n"; }
-    //             else
-    //             { std::cerr << "<# Não foi possível registrar a palavra-chave.\n\n"; }
-    //         }
-
-    //         std::cout << "< Iniciando operação de escrita de uma nova entrada.\n";
-    //         try
-    //         { newEntry(db, tokens, keyword_id); }
-    //         catch(const std::runtime_error& e)
-    //         { std::cerr << e.what() << '\n'; }
-
-    //         entries = getKeywordResults(db, keyword_id);
-    //         std::clog << "< Fim da operação de escrita.\n";
-            
-    //     break;
-
-
-
-
-
-    
-
     
 
     

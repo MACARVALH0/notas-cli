@@ -1,6 +1,5 @@
 #include "db_ops.hpp"
 
-
 db_ptr getDatabasePtr()
 {
     sqlite3* db_raw = nullptr;
@@ -76,6 +75,32 @@ entry_map getKeywordResults(sqlite3* db, int keyword_id)
     return results;
 }
 
+std::string getEntryContent(sqlite3* db, u_int entry_id)
+{
+    const std::string query = "SELECT content FROM results Where id = ?";
+
+    statement_ptr statement(nullptr);
+    sqlite3_stmt* statement_raw;
+
+    if(entry_id > 1000){ return ""; }
+
+    const int statement_prepare_result = sqlite3_prepare_v2(db, query.c_str(), -1, &statement_raw, nullptr);
+    if(statement_prepare_result != SQLITE_OK){ return 0; }
+
+    statement.reset(statement_raw);
+
+    sqlite3_bind_int(statement.get(), 1, entry_id);
+
+    // Executa a query e verifica se há uma linha sendo retornada.
+    int step_result = sqlite3_step(statement.get());
+    if(step_result == SQLITE_ROW)
+    {
+        std::string content = reinterpret_cast<const char*>(sqlite3_column_text(statement.get(), 0));
+        return content;
+    }
+
+    return "";
+}
 
 
 int db_DefineKeyword(sqlite3* db, const std::string& keyword)
@@ -130,7 +155,7 @@ int db_WriteNote(sqlite3* db, int parent_id, const std::string& txt)
 
 
 
-int db_RewriteNote(sqlite3* db, int entry_id, const std::string& txt)
+int db_RewriteNote(sqlite3* db, u_int entry_id, const std::string& txt)
 {
     const std::string query = "UPDATE results SET content = ? WHERE id = ?";
     statement_ptr statement(nullptr);
@@ -153,7 +178,7 @@ int db_RewriteNote(sqlite3* db, int entry_id, const std::string& txt)
 
 
 
-int db_DeleteNote(sqlite3* db, int entry_id)
+int db_DeleteNote(sqlite3* db, u_int entry_id)
 {
     const std::string query = "DELETE FROM results WHERE id = ?";
     statement_ptr statement(nullptr);

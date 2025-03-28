@@ -39,6 +39,12 @@ std::string& trim(std::string& text)
     return text;
 }
 
+bool isNumber(const std::string& value)
+{
+    try                             { std::stoi(value); return true; }
+    catch(std::invalid_argument& e) { return false; }
+    catch(std::out_of_range& e)     { return false; }
+}
 
 int parseInt(const std::string& value)
 {
@@ -98,18 +104,25 @@ Operation getOperation(std::string token)
 
 
 
-PROCESS_INFORMATION StartNotepad(std::string& command)
+void StartNotepad(std::string& command)
 {
-    STARTUPINFOA startup_info = { sizeof(STARTUPINFO) };
-    PROCESS_INFORMATION process_info; // What we get as an `out` parameter
+    // TODO Adicionar verificação se o programa é um editor de texto.
+    if (command.empty())
+    {
+        std::cerr << "O comando não pode estar vazio.\n";
+        exit(EXIT_FAILURE);
+    }
 
-    ZeroMemory(&startup_info, sizeof(startup_info));
-    startup_info.cb = sizeof startup_info; //  `sizeof` as an operator is possible when its operand is a variable and not a type.
+    STARTUPINFOA startup_info = { sizeof(STARTUPINFOA) };
+    PROCESS_INFORMATION process_info  {};
+
+    // ZeroMemory(&startup_info, sizeof(startup_info));
+    // startup_info.cb = sizeof startup_info; //  `sizeof` as an operator is possible when its operand is a variable and not a type.
 
     if( !CreateProcessA
     (
         nullptr,        // lpApplicationName
-        &command[0],    // lpCommandLine
+        command.data(), // lpCommandLine
         nullptr,        // lpProccessAttributes
         nullptr,        // lpThreadAttributes
         FALSE,          // bInheritHandles
@@ -124,5 +137,8 @@ PROCESS_INFORMATION StartNotepad(std::string& command)
         exit(EXIT_FAILURE);
     }
 
-    return process_info;
+    WaitForSingleObject(process_info.hProcess, INFINITE);
+
+    CloseHandle(process_info.hProcess);
+    CloseHandle(process_info.hThread);
 }

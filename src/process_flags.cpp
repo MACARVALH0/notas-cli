@@ -10,7 +10,7 @@
  *  @param end  Iterador que aponta para o final da lista de tokens.
  *  @return     `bool` ou `std::string` correspondente ao atributo de "argumento" da flag.
  */
-static flag_arg getFlagArgument (const FlagRule& rule, const auto& it, const auto& end)
+static flag_arg getFlagArgument (const FlagRule& rule, const std::vector<Token>::iterator& it, const std::vector<Token>::iterator& end)
 {
     // Iterador apontando para o próximo item.
     auto next_it = it+1 != end ? it+1 : it;
@@ -34,11 +34,18 @@ static flag_arg getFlagArgument (const FlagRule& rule, const auto& it, const aut
 
         else true; // Retorna booleano
     }
+
+    return "";
 };
 
 
-flag_setup_map getFlagSetup(const std::vector<Token>& tokens)
+flag_setup_map getFlagSetup(std::vector<Token>& tokens)
 {
+    // Caso não hajam outros tokens na linha de comando.
+    if(tokens.empty()){ return flag_setup_map{}; }
+    else{ std::cout << "<! A lista de tokens de operação não está vazia.\n";} // DEBUG
+
+
     // Define o objeto de set de flags.
     FlagSet set;
 
@@ -49,13 +56,15 @@ flag_setup_map getFlagSetup(const std::vector<Token>& tokens)
         { { "-l", "--long"  },  FlagValue::LONG,     Configuration::SIZE }
     };
 
+
     auto token_it = tokens.begin(); // Iterador que percorrerá o vetor.
     const auto end = tokens.end();  // Cache do iterador marcando o final do vetor.
+
 
     // Loop sobre todods os elementos da lista de tokens.
     while(token_it != end)
     {
-        if(token_it->type != OpTokenType::FLAG) token_it++; 
+        if(token_it->type != OpTokenType::FLAG){ token_it++; continue; }
 
         else
         {
@@ -70,11 +79,11 @@ flag_setup_map getFlagSetup(const std::vector<Token>& tokens)
                     // Declara a flag baseado na regra testada.
                     const Flag flag(rule.value, flag_argument);
 
+                    std::cout << "<! (process_flags.cpp > getFlagSetup) Adicionando um novo elemento ao `flag_set`.\n";
                     // Adiciona a flag atual ao conjunto de FlagSet.
                     set.setFlag(flag, rule.config_name);
-                    
-                    // Retorna os valores armazenados no set de flags.
-                    return set.retrieve();
+
+                    tokens.erase(token_it);
                 }
 
                 else
@@ -87,6 +96,9 @@ flag_setup_map getFlagSetup(const std::vector<Token>& tokens)
             }
         }
     }
+
+    // Retorna os valores armazenados no set de flags.
+    return set.retrieve();
 }
 
 

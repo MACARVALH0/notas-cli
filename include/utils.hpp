@@ -70,6 +70,8 @@ std::vector<T> splice(std::vector<T> v, size_t start_index, size_t count)
 
 std::string& trim(std::string& text);
 
+bool isNumber(const std::string& value);
+
 int parseInt(const std::string& value);
 
 std::string toString_OpTokenType(OpTokenType type);
@@ -90,13 +92,13 @@ Operation getOperation(std::string token);
  */
 std::vector<Token> tokenize(std::string& line);
 
+
 /**
  * @brief Processa operações específicas de cada comando.
  */
-void processTokens(Keyword& keyword, const std::vector<Token>& tokens, sqlite3* db);
+void processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db);
 
-// flag_map getFlags(const token_list& tokens);
 
-PROCESS_INFORMATION StartNotepad(std::string& command);
+void StartNotepad(std::string& command);
 
 #endif

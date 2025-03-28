@@ -45,6 +45,7 @@ struct Flag
 
 using flag_setup_map = std::map<Configuration, Flag>;
 
+
 /** 
  *  @brief Uma abstração que representa as regras de detecção de flags.
  */
@@ -86,6 +87,20 @@ class FlagSet
 
 };
 
+/*
+    TODO
+    Transformar a abstração `std::vector<ContextConfiguration>` de operation_functions
+    em um std::map<Configuration, CtxConfig>
+*/
+struct CtxConfig
+{
+    bool obligatory;
+    bool exists;
+    Flag flag;
+
+    CtxConfig(bool obligatory) : obligatory(obligatory) {}
+};
+
 
 struct ContextConfiguration
 {
@@ -105,7 +120,7 @@ struct ContextConfiguration
  *  @param tokens   Lista de tokens da linha de comando.  
  *  @return         Um mapa std::map<std::string, Flag> indicando as definições de flags encontradas.
  */
-flag_setup_map getFlagSetup(const std::vector<Token>& tokens);
+flag_setup_map getFlagSetup(std::vector<Token>& tokens);
 
 
 std::string toString_Configuration(Configuration config);

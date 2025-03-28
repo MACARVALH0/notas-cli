@@ -1,21 +1,134 @@
 #include "operation_functions.hpp"
 
-#define SAVE_ERR std::cerr << err.what() << '\n'; throw std::runtime_error("<# Não foi possível salvar a nota.\n");
+using context_map = std::map<Configuration, CtxConfig>;
 
-
-inline void handleSaveError(const std::runtime_error& err)
+static std::string readFile(const std::string& filename)
 {
-    std::cerr << err.what() << '\n';
-    throw std::runtime_error("<# Não foi possível salvar a nota.\n");
+    std::ifstream file(filename, std::ios::binary);
+
+    if(!file)
+    {
+        ErrorMsg err;
+        err << "Não foi possível abrir o arquivo `" << filename << "`.\n";
+        throw std::runtime_error(err.get());
+    }
+
+    // Lida com o conjunto de bytes do BOM (Byte Order Mark).
+    size_t bom_size = 3;        // Número de bytes do BOM.
+    char bom[bom_size] = {0};   // Buffer para armazenar o BOM.
+    file.read(bom, bom_size);   // lê o número de bytes do BOM e os armazena em `bom`.
+
+    /*
+        Caso o arquivo esteja condificado em BOM, seus três primeiros bytes serão:
+        - \xEF (239, em decimal)
+        - \xBB (187, em decimal)
+        - \xBF (191, em decimal)
+
+        Se não, os três primeiros bytes devem fazer parte do conteúdo real do arquivo.
+
+        O trecho abaixo verifica se os três primeiros bytes são indicadores de um BOM,
+        ao invés de caracteres de conteúdo que deve ser lido do arquivo.
+
+        Caso o arquivo tenha BOM, a leitura continua normalmente, uma vez que já avançamos três casas.
+        Caso o arquivo não tenha BOM, retornamos ao início do arquivo.
+
+        -> Se os três primeiros bytes não forem o Byte Order Mark, significa que lemos dados válidos sem necessidade.
+
+        Assim, `seekg` reposiciona o cursor de leitura no início do arquivo,
+        para garantir que o conteúdo a ser lido não se perca.
+    */
+    if (!(bom[0] == '\xEF' && bom[1] == '\xBB' && bom[2] == '\xBF'))
+    {
+        file.seekg(0); // Reposiciona o cursor de leitura no início do arquivo.
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+
+    return buffer.str();
 }
 
-// TODO Deletar isso aqui...
-// Pra quê que serve isso aqui mesmo? Eu sequer uso essa parte?
-str_vector::iterator getIterator(str_vector v, const std::string& flag) { return std::find(v.begin(), v.end(), flag); }
+
+static void newEntryLong(sqlite3* db, int parent_id)
+{
+    std::cout << "<! Entrando em `newEntryLong`.\n";
+
+    const std::string filename = "temp.txt";
+    std::string default_insert = "\n< Edite aqui o conteúdo da nota.\n";
+
+    // Lê o conteúdo do arquivo temporário `filename`
+    auto readFile = [filename]() -> std::string
+    {
+        std::ifstream file_r(filename);
+        std::string content((std::istreambuf_iterator<char>(file_r)), std::istreambuf_iterator<char>());
+        return content;
+    };
+
+    std::cout << "<! Abrindo o arquivo de edição de texto e adicionando o texto placeholder.\n";
 
 
+    // Captura a informação de processo do bloco de notas para lidar com os handles.
+    std::cout << "< Escreva o conteúdo da nota no editor de texto.\n";
+    std::string command = "notepad.exe " + filename;
+    // PROCESS_INFORMATION process_info = StartNotepad(command);
+    // std::cout << "<! `process_info` da operação capturado com sucesso.\n";
 
-void deleteTempFile(){}
+    StartNotepad(command);
+    // Esperando o processo do bloco de notas ser terminado.
+    // WaitForSingleObject(process_info.hProcess, INFINITE);
+
+    // CloseHandle(process_info.hProcess);
+    // CloseHandle(process_info.hThread);
+
+    std::cout << "<! Handle fechado com sucesso.\n";
+
+    // Lê o conteúdo do arquivo temporário.
+    const std::string& entry_text = readFile();
+
+    std::cout << "<! Conteúdo do arquivo de texto capturdo com sucesso.\n";
+
+    if(entry_text.empty() || entry_text == default_insert)
+    {
+        std::cout << "<! A nota vazia não será adicionada ao banco dados.\n";
+        return;
+    }
+
+    else
+    {
+        // Adicionando do banco de dados.
+        if(!db_WriteNote(db, parent_id, entry_text))
+        {
+            throw std::runtime_error("Houve um problema na tentativa de adicionar a nota ao banco de dados.\n");
+        }
+    }
+
+    if(!DeleteFileW(L"temp.txt"))
+    {
+        std::cerr << "<# Não foi possível excluir o arquivo temporário.";
+    }
+
+}
+
+
+static void newEntryShort(sqlite3*db, int parent_id, const std::string& entry_text)
+{
+    std::cout << "<! Entrou com sucesso em `newEntryShort`.\n";
+
+    if(entry_text.empty())
+    {
+        std::cout << "< A nota vazia não será adicionada ao banco dados.\n";
+        return;
+    }
+
+    else
+    {
+        std::cout << "<! Executando db_WriteNote.\n";
+        if(!db_WriteNote(db, parent_id, entry_text))
+        {
+            throw std::runtime_error("Houve um problema na tentativa de adicionar a nota ao banco de dados.\n");
+        }
+    }
+}
 
 
 /**
@@ -23,15 +136,29 @@ void deleteTempFile(){}
  * @param flag_set O mapa de itens configuração-flag recuperados da linha de comando.
  * @param ctx O vetor de configurações contextuais da operação (basicamente as tags envolvidas, se são obrigatórias, etc).
  */
-void setupFlagSettings(const flag_setup_map& flag_set, std::vector<ContextConfiguration>& ctx)
+static void setupFlagSettings(const flag_setup_map& flag_set, context_map& ctx)
 {
-    auto ctx_it = ctx.begin();
-    auto ctx_end = ctx.end();
+    std::cout << "<! Entrando em setupFlagSettings.\n"; // DEBUG
 
-    while(ctx_it != ctx_end)
+    // Encerra a função caso o mapa de flags esteja vazio.
+    if(flag_set.empty()){ return; }
+
+        // DEBUG
+        std::cout << "\n<! Elementos contidos em `flag_set`:\n";
+        auto set_it = flag_set.begin();
+        while (set_it != flag_set.end())
+        {
+            std::cout << "{ Configuração: " << toString_Configuration(set_it->first) << ", Flag: " << "[ algum FlagValue ]" << " }\n";
+            set_it++;
+        }
+        std::cout << "<! Laço concluído!\n";
+    
+    auto ctx_it = ctx.begin();
+
+    while(ctx_it != ctx.end())
     {
-        // Define a configuração analisada.
-        const auto config = ctx_it->configuration;
+
+        const auto config = ctx_it->first; // Atributo de configuração definido pela chave do elemento em `context_map`
 
         if(flag_set.find(config) != flag_set.end())
         {
@@ -39,11 +166,12 @@ void setupFlagSettings(const flag_setup_map& flag_set, std::vector<ContextConfig
                 Define a flag para a configuração analisada.
                 Esta flag é o valor de flag_set cuja chave é o nome da configuração apontada em `ctx`.
             */
-            ctx_it->flag = flag_set.at(config);
+
+            ctx_it->second.flag = flag_set.at(config);
+            ctx_it->second.exists = true;
         }
 
-        // Caso a configuração não seja encontrada no `flag_set`, mas ainda assim seja obrigatória.
-        else if(ctx_it->obligatory)
+        else if(ctx_it->second.obligatory)
         {
             ErrorMsg err;
             err << "A propriedade obrigatória `" << toString_Configuration(config) << "` não foi definida.";
@@ -55,133 +183,178 @@ void setupFlagSettings(const flag_setup_map& flag_set, std::vector<ContextConfig
 }
 
 
+
+
 void registerNewEntry(sqlite3* db, int parent_id, const std::vector<Token>& tokens, const flag_setup_map& flag_set)
 {
     std::cout << "<! Sucesso ao entrar em `registerNewEntry`.\n";
 
-    std::vector<ContextConfiguration> ctx =
+    if(flag_set.empty())
     {
-        {Configuration::SIZE, false}
-    };
+        /*
+            Caso nenhuma flag esteja acompanhando o comando `new`,
+            apenas executa uma nova operação de escrita com o editor de texto.
+        */
 
-    setupFlagSettings(flag_set, ctx);
-    std::cout << "<! setupFlagSettings` executado com sucesso.\n";
+        newEntryLong(db, parent_id);
+    }
 
-    
-    // Talvez faça sentido organizar melhor essa parte depois, mas agora serei mais direto.
-
-    const Flag SIZE_FLAG = flag_set.at(Configuration::SIZE);
-    std::cout << "<! `SIZE_FLAG` definido.\n";
-
-    // Caso a flag `-s` ou `--short` estejam presentes na linha de comando.
-    if(SIZE_FLAG.value == FlagValue::SHORT)
-    { newEntryShort(db, parent_id, std::get<std::string>(SIZE_FLAG.arg)); }
-
-    // Caso a flag <`-l`|`--long`> esteja presente na linha de comando
-    // ou a tag <`-s`|`--short`> não esteja definida.
     else
-    { newEntryLong(db, parent_id); }
-}
-
-
-
-
-
-
-
-
-
-// [ ]
-// TODO - implementar texto da entrada na edi��o de entradas
-// void rewriteEntry(sqlite3* db, const str_vector& tokens)
-void rewriteEntry(sqlite3* db, const str_vector& tokens, const std::string& entry_txt)
-{
-    int entry_id = 0;
-    str_vector flags = {"-l"};
-    std::string entry_text_input = "";
-
-    auto isNumber = [](const std::string& str)
     {
-        for(const char& c : str){if (!isdigit(c)) return false; }
-        return true;
-    };
-
-    // Getting the id of the entries to rewrite. 
-    for(const std::string& str : tokens)
-    {
-        if(isNumber(str))
+        context_map ctx = 
         {
-            entry_id = parseInt(str);
-            break;
-        }
-    }
-
-    if(!entry_id)
-    {
-        std::cerr << "<# � necess�rio inserir um id de entrada v�lido.\n";
-        throw std::runtime_error("<# N�o foi poss�vel encontrar o id da entrada.\n");
-    }
-
-
-    if(!tokens.empty() && getIterator(tokens, flags[0]) != tokens.end())
-    { // In case of a long entry
-        std::string filename = "temp.txt";
-
-        // L� o conte�do do arquivo tempor�rio `filename`
-        auto readFile = [filename]() -> std::string
-        {
-            std::ifstream file_r(filename);
-            std::string content((std::istreambuf_iterator<char>(file_r)), std::istreambuf_iterator<char>());
-            return content;
+            {Configuration::SIZE, CtxConfig(false)}
         };
 
-        std::ofstream file_w(filename);
-        file_w << entry_txt << "\n";
-        file_w.close();
+        // setupFlagSettings(flag_set, ctx);
+        std::cout << "<! setupFlagSettings` executado com sucesso.\n";
 
-        std::string command = "notepad.exe " + filename;
-        system(command.c_str());
 
-        // Lendo o conte�do do arquivo tempor�rio.
-        entry_text_input = readFile();
+        // FIXME Talvez faça sentido organizar melhor essa parte depois, mas agora serei mais direto.
+        const Flag SIZE_FLAG = ctx.at(Configuration::SIZE).flag;
+        std::cout << "<! `SIZE_FLAG` definido.\n";
 
-        if(!entry_text_input.empty())
-        {
-            // Adicionando ao banco de dados.
-            if(!db_RewriteNote(db, entry_id, entry_text_input))
-            {
-                std::cerr << "<# N�o foi poss�vel sobrescrever a nota no banco de dados corretamente.\n";
-                throw std::runtime_error("O id inserido n�o � v�lido ou n�o existe.");
-            }
-        }
+        // Caso a flag `-s` ou `--short` estejam presentes na linha de comando.
+        if(SIZE_FLAG.value == FlagValue::SHORT)
+        { newEntryShort(db, parent_id, std::get<std::string>(SIZE_FLAG.arg)); }
 
-        else{ std::cout << "\n< A nota vazia n�o ser� salva.\n"; }
-
-        // Limpando o conte�do do arquivo tempor�rio.
-        file_w << "";
+        /*
+            Caso a flag <`-l`|`--long`> esteja presente na linha de comando
+            ou a tag <`-s`|`--short`> não esteja definida.
+        */
+        else
+        { newEntryLong(db, parent_id); }
     }
 
-    else // Rewriting entry in short mode
+    
+}
+
+
+
+static std::string rewriteLong(sqlite3* db, u_int entry_id)
+{
+    std::cout << "<! Entrando em `rewriteLong`.\n"; // DEBUG
+
+    // Captura o atual conteúdo da nota identificada pelo ID encontrado.
+    const std::string cur_content = getEntryContent(db, entry_id);
+
+    // O nome do arquivo temporário onde a nota será editada.
+    const std::string FILENAME = "temp.txt";
+    std::ofstream file(FILENAME);
+    file << cur_content;
+    file.close();
+
+    std::string command = "notepad.exe " + FILENAME;
+    StartNotepad(command);
+
+    std::string temp_file_content = readFile(FILENAME);
+
+    return temp_file_content;
+}
+
+
+
+static void rewrite_Save(sqlite3* db, u_int entry_id, const std::string& content)
+{
+    if(content.empty())
     {
-        std::cout << "Escreva o o texto para sobrescrever o conte�do da entrada original:\n> ";
-        std::cout << "Texto original:\n";
-        std::cout << entry_txt << "\n> ";
+        std::cout << "<# Não é possível substituir o conteúdo de uma entrada por uma string vazia.\n";
+        return;
+    }
 
-        std::getline(std::cin, entry_text_input);
-
-        if(!entry_text_input.empty())
-        {
-            // Adicionando ao banco de dados.
-            if(!db_RewriteNote(db, entry_id, entry_text_input))
-            {
-                std::cerr << "<# N�o foi poss�vel sobrescrever a nota no banco de dados corretamente.\n";
-                throw std::runtime_error("O id inserido n�o � v�lido ou n�o existe.\n");
-            }
-        }
-
-        else{ std::cout << "\n< A nota vazia n�o ser� salva.\n"; }
+    if(!db_RewriteNote(db, entry_id, content))
+    {
+        ErrorMsg err;
+        err << "Houve um problema na tentativa de reescrever a entrada sob o id `" << entry_id << "`.";
+        throw std::runtime_error(err.get());
     }
 }
+
+
+static std::string rewrite_getContent(sqlite3* db, u_int entry_id, const Flag& SIZE_FLAG)
+{
+    switch(SIZE_FLAG.value)
+    {
+        // Caso as flags `-s` ou `--short` estejam presentes na linha de comando.
+        case FlagValue::SHORT: return std::get<std::string>(SIZE_FLAG.arg);
+        break;
+
+        // Caso as flags `-l` ou `--long` estejam presentes na linha de comando.
+        case FlagValue::LONG: return rewriteLong(db, entry_id);
+        break;
+
+        // Caso nenhuma outra flag válida de tipo de entrada seja identificada.
+        default: return rewriteLong(db, entry_id);
+        break;
+    }
+}
+
+
+static std::optional<u_int> getEntryId(const std::vector<Token>& tokens)
+{
+    auto it = tokens.begin();
+
+    while(it != tokens.end())
+    {
+        if(it->type == OpTokenType::IDENTIFIER && isNumber(it->content))
+        { return parseInt(it->content); }
+
+        else { it++; continue; }
+    }
+
+    // Caso o ID não seja encontrado, retorna um ponteiro nulo.
+    return std::nullopt;
+}
+
+
+// TODO Reescrever essa função.
+void rewriteEntry(sqlite3* db, int parent_id, const std::vector<Token>& tokens, const flag_setup_map& flag_set)
+{
+    std::cout << "<! Entrando em `rewriteEntry`.\n"; // DEBUG
+    // Capturando o ID da entrada a ser reescrita.
+    const std::optional<u_int> opt_entry_id = getEntryId(tokens);
+
+    // Lança um erro caso não encontre um id de busca.
+    if(!opt_entry_id.has_value()) 
+    { throw std::runtime_error("Não foi encontrado um ID de entrada válido.\n"); }
+
+    const u_int entry_id = opt_entry_id.value();
+    std::cout << "<! `enty_id` capturado com sucesso.\n"; // DEBUG
+
+    // FIXME Solução provisória para diferenciação de quando há ou não flags na linha de comando.
+    if(flag_set.empty())
+    {
+        std::cout << "<! Não existem flags definidas na linha de comando.\n"; // DEBUG
+        const std::string content = rewriteLong(db, entry_id);
+
+        std::cout << "Conteúdo da nota: \"" << content << "\".\n";
+
+        rewrite_Save(db, entry_id, content);
+
+        return;
+    }
+
+    // Definindo as configurações relevantes neste contexto.
+    context_map ctx = 
+    {
+        {Configuration::SIZE, CtxConfig(false)}
+    };
+
+    // Atribui as flags às suas respectivas configurações.
+    setupFlagSettings(flag_set, ctx); // TODO Consertar interação de `setupFlagSettings` com o novo tipo de `ctx`.
+    std::cout << "<! setupFlagSettings` executado com sucesso.\n"; // DEBUG
+
+    const Flag SIZE_FLAG = ctx.at(Configuration::SIZE).flag;
+
+    const std::string content = rewrite_getContent(db, entry_id, SIZE_FLAG);
+
+    rewrite_Save(db, entry_id, content);
+}
+
+
+
+
+
 
 
 void DeleteEntry(sqlite3* db, str_vector tokens)
@@ -255,81 +428,4 @@ void ShowHelpMenu()
     
     std::cout << "\n";
 
-}
-
-
-void newEntryLong(sqlite3* db, int parent_id)
-{
-    const std::string filename = "temp.txt";
-    std::string default_insert = "\n< Edite aqui o conteúdo da nota.\n";
-
-    // Lê o conteúdo do arquivo temporário `filename`
-    auto readFile = [filename]() -> std::string
-    {
-        std::ifstream file_r(filename);
-        std::string content((std::istreambuf_iterator<char>(file_r)), std::istreambuf_iterator<char>());
-        return content;
-    };
-
-    // Abre o arquivo temporário, adiciona o texto de placeholder e fecha o mesmo.
-    std::ofstream file_w(filename);
-    file_w << default_insert;
-    file_w.close();
-
-    // Captura a informação de processo do bloco de notas para lidar com os handles.
-    std::string command = "notepad.exe " + filename;
-    PROCESS_INFORMATION process_info = StartNotepad(command);
-
-    // Esperando o processo do bloco de notas ser terminado.
-    WaitForSingleObject(process_info.hProcess, INFINITE);
-
-    CloseHandle(process_info.hProcess);
-    CloseHandle(process_info.hThread);
-
-    // Lê o conteúdo do arquivo temporário.
-    const std::string& entry_text = readFile();
-
-    if(entry_text.empty() || entry_text == default_insert)
-    {
-        std::cout << "< A nota vazia não será adicionada ao banco dados.\n";
-        return;
-    }
-
-    else
-    {
-        // Adicionando do banco de dados.
-        if(!db_WriteNote(db, parent_id, entry_text))
-        {
-            throw std::runtime_error("Houve um problema na tentativa de adicionar a nota ao banco de dados.\n");
-        }
-    }
-
-    if(!DeleteFileW(L"temp.txt"))
-    {
-        std::cerr << "<# Não foi possível excluir o arquivo temporário.";
-    }
-
-}
-
-
-void newEntryShort(sqlite3*db, int parent_id, const std::string& entry_text)
-{
-    std::cout << "<! Entrou com sucesso em `newEntryShort`.\n";
-
-    std::string filename = "temp.txt";
-
-    if(entry_text.empty())
-    {
-        std::cout << "< A nota vazia não será adicionada ao banco dados.\n";
-        return;
-    }
-
-    else
-    {
-        std::cout << "<! Executando db_WriteNote.\n";
-        if(!db_WriteNote(db, parent_id, entry_text))
-        {
-            throw std::runtime_error("Houve um problema na tentativa de adicionar a nota ao banco de dados.\n");
-        }
-    }
 }
