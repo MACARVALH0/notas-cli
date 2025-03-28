@@ -11,9 +11,9 @@
 void registerNewEntry(sqlite3* db, int parent_id, const std::vector<Token>& tokens, const flag_setup_map& flag_set);
 
 void rewriteEntry(sqlite3* db, int parent_id, const std::vector<Token>& tokens, const flag_setup_map& flag_set);
-void DeleteEntry(sqlite3* db, str_vector tokens);
+void deleteEntry(sqlite3* db, const std::vector<Token>& tokens, const flag_setup_map& flag_set);
 
-void ShowHelpMenu();
+void showHelpMenu();
 
 
 #endif

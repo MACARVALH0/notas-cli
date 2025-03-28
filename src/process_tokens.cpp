@@ -4,7 +4,7 @@
 
 void processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db)
 {
-    std::cout << "<! Iniciando `processTokens`.\n";
+    std::cout << "<! Iniciando `processTokens`.\n"; // DEBUG
 
     // 1. Captura o tipo de operação a ser realizada baseado no conteúdo do primeiro token da lista.
     const Operation op = getOperation(tokens[0].content);
@@ -19,16 +19,16 @@ void processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db)
 
     // 3. Organiza tokens de operação (sem o nome da operação, ou seja, sem o primeiro item).
     std::vector<Token> op_tokens(tokens.begin()+1, tokens.end()); 
-    std::cout << "<! `op_tokens` definido.\n";
+    std::cout << "<! `op_tokens` definido.\n"; // DEBUG
 
     // 4. Recebe lista de configurações de flags definidas.
     flag_setup_map flag_setup = getFlagSetup(op_tokens);
-    std::cout << "<! `flag_setup` definido.\n";
+    std::cout << "<! `flag_setup` definido.\n"; // DEBUG
 
     // 5. Executa a operação adequada baseado em `Operation op`.
     switch(op)
     {
-        //////////////////// NEW: Operação de criação de nova nota.
+        //////////////////// NEW: Operação de criação de uma nova nota.
         case NEW_op:
 
             // 1. Analisa se já existe um registro no banco de dados com a palavra-chave fornecida.
@@ -46,7 +46,7 @@ void processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db)
                 }
             }
 
-            std::cout << "<! Iniciando `registerNewEntry`.\n";
+            std::cout << "<! Iniciando `registerNewEntry`.\n"; // DEBUG
             
             // 2. Tentativa de executar a operação de criação de registro.
             try { registerNewEntry(db, keyword.id, tokens, flag_setup); }
@@ -55,6 +55,7 @@ void processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db)
             {
                 std::cerr << err.what();// << '\n';
                 // TODO Maybe deal with deleting keyword register in database if it was its first entry and it failed.
+                return;
             }
 
         break;
@@ -66,6 +67,7 @@ void processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db)
             {
                 ErrorMsg err;
                 err << "A palavra-chave " << keyword.name << " não está registrada e não possui entradas para serem reescritas.";
+                throw std::runtime_error(err.get());
             }
 
             else
@@ -77,6 +79,31 @@ void processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db)
                 catch(std::runtime_error& err)
                 {
                     std::cerr << err.what();
+                    return;
+                }
+            }
+
+        break;
+
+        //////////////////// DELETE: Operação de deletar uma entrada.
+        case DELETE_op:
+
+            if(!keyword.exists())
+            {
+                ErrorMsg err;
+                err << "A palavra-chave " << keyword.name << " não está registrada e não possui itens a serem deletados.";
+                throw std::runtime_error(err.get());
+            }
+
+
+            else
+            {
+                try{ deleteEntry(db, tokens, flag_setup); }
+
+                catch(std::runtime_error& err)
+                {
+                    std::cerr << err.what();
+                    return;
                 }
             }
 

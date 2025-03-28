@@ -49,6 +49,61 @@ static std::string readFile(const std::string& filename)
 }
 
 
+
+
+/**
+ * @brief A função universal de configuração contextual de flags envolvidas na operação, seja de escrita (NEW), reescrita (REWRITE), etc.
+ * @param flag_set O mapa de itens configuração-flag recuperados da linha de comando.
+ * @param ctx O vetor de configurações contextuais da operação (basicamente as tags envolvidas, se são obrigatórias, etc).
+ */
+static void setupFlagSettings(const flag_setup_map& flag_set, context_map& ctx)
+{
+    std::cout << "<! Entrando em setupFlagSettings.\n"; // DEBUG
+
+    // Encerra a função caso o mapa de flags esteja vazio.
+    if(flag_set.empty()){ return; }
+
+        // DEBUG
+        std::cout << "\n<! Elementos contidos em `flag_set`:\n";
+        auto set_it = flag_set.begin();
+        while (set_it != flag_set.end())
+        {
+            std::cout << "{ Configuração: " << toString_Configuration(set_it->first) << ", Flag: " << "[ algum FlagValue ]" << " }\n";
+            set_it++;
+        }
+        std::cout << "<! Laço concluído!\n";
+    
+    auto ctx_it = ctx.begin();
+
+    while(ctx_it != ctx.end())
+    {
+
+        const auto config = ctx_it->first; // Atributo de configuração definido pela chave do elemento em `context_map`
+
+        if(flag_set.find(config) != flag_set.end())
+        {
+            /*
+                Define a flag para a configuração analisada.
+                Esta flag é o valor de flag_set cuja chave é o nome da configuração apontada em `ctx`.
+            */
+
+            ctx_it->second.flag = flag_set.at(config);
+            ctx_it->second.exists = true;
+        }
+
+        else if(ctx_it->second.obligatory)
+        {
+            ErrorMsg err;
+            err << "A propriedade obrigatória `" << toString_Configuration(config) << "` não foi definida.";
+            throw std::runtime_error(err.get()); // Lança um erro.
+        }
+
+        ctx_it++;
+    }
+}
+
+
+
 static void newEntryLong(sqlite3* db, int parent_id)
 {
     std::cout << "<! Entrando em `newEntryLong`.\n";
@@ -109,7 +164,6 @@ static void newEntryLong(sqlite3* db, int parent_id)
 
 }
 
-
 static void newEntryShort(sqlite3*db, int parent_id, const std::string& entry_text)
 {
     std::cout << "<! Entrou com sucesso em `newEntryShort`.\n";
@@ -129,61 +183,6 @@ static void newEntryShort(sqlite3*db, int parent_id, const std::string& entry_te
         }
     }
 }
-
-
-/**
- * @brief A função universal de configuração contextual de flags envolvidas na operação, seja de escrita (NEW), reescrita (REWRITE), etc.
- * @param flag_set O mapa de itens configuração-flag recuperados da linha de comando.
- * @param ctx O vetor de configurações contextuais da operação (basicamente as tags envolvidas, se são obrigatórias, etc).
- */
-static void setupFlagSettings(const flag_setup_map& flag_set, context_map& ctx)
-{
-    std::cout << "<! Entrando em setupFlagSettings.\n"; // DEBUG
-
-    // Encerra a função caso o mapa de flags esteja vazio.
-    if(flag_set.empty()){ return; }
-
-        // DEBUG
-        std::cout << "\n<! Elementos contidos em `flag_set`:\n";
-        auto set_it = flag_set.begin();
-        while (set_it != flag_set.end())
-        {
-            std::cout << "{ Configuração: " << toString_Configuration(set_it->first) << ", Flag: " << "[ algum FlagValue ]" << " }\n";
-            set_it++;
-        }
-        std::cout << "<! Laço concluído!\n";
-    
-    auto ctx_it = ctx.begin();
-
-    while(ctx_it != ctx.end())
-    {
-
-        const auto config = ctx_it->first; // Atributo de configuração definido pela chave do elemento em `context_map`
-
-        if(flag_set.find(config) != flag_set.end())
-        {
-            /*
-                Define a flag para a configuração analisada.
-                Esta flag é o valor de flag_set cuja chave é o nome da configuração apontada em `ctx`.
-            */
-
-            ctx_it->second.flag = flag_set.at(config);
-            ctx_it->second.exists = true;
-        }
-
-        else if(ctx_it->second.obligatory)
-        {
-            ErrorMsg err;
-            err << "A propriedade obrigatória `" << toString_Configuration(config) << "` não foi definida.";
-            throw std::runtime_error(err.get()); // Lança um erro.
-        }
-
-        ctx_it++;
-    }
-}
-
-
-
 
 void registerNewEntry(sqlite3* db, int parent_id, const std::vector<Token>& tokens, const flag_setup_map& flag_set)
 {
@@ -252,8 +251,6 @@ static std::string rewriteLong(sqlite3* db, u_int entry_id)
     return temp_file_content;
 }
 
-
-
 static void rewrite_Save(sqlite3* db, u_int entry_id, const std::string& content)
 {
     if(content.empty())
@@ -269,7 +266,6 @@ static void rewrite_Save(sqlite3* db, u_int entry_id, const std::string& content
         throw std::runtime_error(err.get());
     }
 }
-
 
 static std::string rewrite_getContent(sqlite3* db, u_int entry_id, const Flag& SIZE_FLAG)
 {
@@ -288,7 +284,6 @@ static std::string rewrite_getContent(sqlite3* db, u_int entry_id, const Flag& S
         break;
     }
 }
-
 
 static std::optional<u_int> getEntryId(const std::vector<Token>& tokens)
 {
@@ -354,43 +349,42 @@ void rewriteEntry(sqlite3* db, int parent_id, const std::vector<Token>& tokens, 
 
 
 
-
-
-
-void DeleteEntry(sqlite3* db, str_vector tokens)
+std::unordered_set<u_int> getEntryIdList(const std::vector<Token>& tokens)
 {
-    std::vector<int> id_list = {};
+    std::unordered_set<u_int> id_list;
 
-    auto isNumber = [](const std::string& str)
-    {
-        for(const char& c : str){if (!isdigit(c)) return false; }
-        return true;
-    };
+    auto it = tokens.begin();
 
-    // First part: Captura os n�meros de id de cada entrada a ser deletada.
-    for(const std::string& token : tokens)
+    while(it != tokens.end())
     {
-        if(isNumber(token))
-        {
-            int id = parseInt(token);
-            if(!id)
-            {
-                std::string error_msg = "<# O valor " + token + " n�o � um id v�lido.\n";
-                throw std::runtime_error(error_msg);
-            }
-            else { id_list.push_back(id); }
-        }
+        if(it->type == OpTokenType::IDENTIFIER && isNumber(it->content))
+        { id_list.insert(parseInt(it->content)); }
+
+        it++;
     }
 
-    // Second part: Chama as fun��es respons�veis por deletar para cada id.
+    return id_list;
+}
 
-    for(int id : id_list)
+
+void deleteEntry(sqlite3* db, const std::vector<Token>& tokens, const flag_setup_map& flag_set)
+{
+    std::unordered_set<u_int> id_list = getEntryIdList(tokens);
+
+    // Se a lista estiver vazia, nenhum id válido foi encontrado, retorna um erro.
+    if(id_list.empty())
+    { throw std::runtime_error("<# Nenhum id válido foi encontrado na linha de comando.\n"); }
+
+    // Interação com flags no futuro, caso haja alguma.
+
+    // TODO O ideal é que uma só função seja chamada, passando como argumento toda a lista de ids.
+    for(u_int id : id_list)
     {
         if(!db_DeleteNote(db, id))
         {
-            std::string id_str = std::to_string(id);
-            std::string delete_error_msg = "<# N�o foi poss�vel deletar o item de id " + id_str + " corretamente.\n";
-            throw std::runtime_error(delete_error_msg);
+            ErrorMsg err;
+            err << "Não foi possível deletar o item com  o id `" << id << "` do banco de dados.";
+            throw std::runtime_error(err.get());
         }
     }
 }
