@@ -63,21 +63,20 @@ static void setupFlagSettings(const flag_setup_map& flag_set, context_map& ctx)
     // Encerra a função caso o mapa de flags esteja vazio.
     if(flag_set.empty()){ return; }
 
-        // DEBUG
-        std::cout << "\n<! Elementos contidos em `flag_set`:\n";
-        auto set_it = flag_set.begin();
-        while (set_it != flag_set.end())
-        {
-            std::cout << "{ Configuração: " << toString_Configuration(set_it->first) << ", Flag: " << "[ algum FlagValue ]" << " }\n";
-            set_it++;
-        }
-        std::cout << "<! Laço concluído!\n";
+    // DEBUG
+    // std::cout << "\n<! Elementos contidos em `flag_set`:\n";
+    // auto set_it = flag_set.begin();
+    // while (set_it != flag_set.end())
+    // {
+    //     std::cout << "{ Configuração: " << toString_Configuration(set_it->first) << ", Flag: " << "[ algum FlagValue ]" << " }\n";
+    //     set_it++;
+    // }
+    // std::cout << "<! Laço concluído!\n";
     
     auto ctx_it = ctx.begin();
 
     while(ctx_it != ctx.end())
     {
-
         const auto config = ctx_it->first; // Atributo de configuração definido pela chave do elemento em `context_map`
 
         if(flag_set.find(config) != flag_set.end())
@@ -103,44 +102,29 @@ static void setupFlagSettings(const flag_setup_map& flag_set, context_map& ctx)
 }
 
 
-
+// FIXME Refatorar esta função para adequar ao padrão definido na operação de REWRITE
 static void newEntryLong(sqlite3* db, int parent_id)
 {
-    std::cout << "<! Entrando em `newEntryLong`.\n";
+    // std::cout << "<! Entrando em `newEntryLong`.\n"; // debug;
 
     const std::string filename = "temp.txt";
     std::string default_insert = "\n< Edite aqui o conteúdo da nota.\n";
 
-    // Lê o conteúdo do arquivo temporário `filename`
-    auto readFile = [filename]() -> std::string
-    {
-        std::ifstream file_r(filename);
-        std::string content((std::istreambuf_iterator<char>(file_r)), std::istreambuf_iterator<char>());
-        return content;
-    };
-
-    std::cout << "<! Abrindo o arquivo de edição de texto e adicionando o texto placeholder.\n";
-
+    // std::cout << "<! Abrindo o arquivo de edição de texto e adicionando o texto placeholder.\n"; // DEBUG
 
     // Captura a informação de processo do bloco de notas para lidar com os handles.
     std::cout << "< Escreva o conteúdo da nota no editor de texto.\n";
     std::string command = "notepad.exe " + filename;
-    // PROCESS_INFORMATION process_info = StartNotepad(command);
-    // std::cout << "<! `process_info` da operação capturado com sucesso.\n";
 
     StartNotepad(command);
-    // Esperando o processo do bloco de notas ser terminado.
-    // WaitForSingleObject(process_info.hProcess, INFINITE);
 
-    // CloseHandle(process_info.hProcess);
-    // CloseHandle(process_info.hThread);
 
     std::cout << "<! Handle fechado com sucesso.\n";
 
     // Lê o conteúdo do arquivo temporário.
-    const std::string& entry_text = readFile();
+    const std::string& entry_text = readFile(filename);
 
-    std::cout << "<! Conteúdo do arquivo de texto capturdo com sucesso.\n";
+    // std::cout << "<! Conteúdo do arquivo de texto capturdo com sucesso.\n"; // DEBUG
 
     if(entry_text.empty() || entry_text == default_insert)
     {
@@ -164,6 +148,7 @@ static void newEntryLong(sqlite3* db, int parent_id)
 
 }
 
+// FIXME Refatorar esta função para adequar ao padrão definido na operação de REWRITE.
 static void newEntryShort(sqlite3*db, int parent_id, const std::string& entry_text)
 {
     std::cout << "<! Entrou com sucesso em `newEntryShort`.\n";
@@ -184,6 +169,7 @@ static void newEntryShort(sqlite3*db, int parent_id, const std::string& entry_te
     }
 }
 
+// FIXME Precisa de refatoração.
 void registerNewEntry(sqlite3* db, int parent_id, const std::vector<Token>& tokens, const flag_setup_map& flag_set)
 {
     std::cout << "<! Sucesso ao entrar em `registerNewEntry`.\n";
@@ -205,13 +191,12 @@ void registerNewEntry(sqlite3* db, int parent_id, const std::vector<Token>& toke
             {Configuration::SIZE, CtxConfig(false)}
         };
 
-        // setupFlagSettings(flag_set, ctx);
-        std::cout << "<! setupFlagSettings` executado com sucesso.\n";
-
+        setupFlagSettings(flag_set, ctx);
+        // std::cout << "<! setupFlagSettings` executado com sucesso.\n"; // DEBUG
 
         // FIXME Talvez faça sentido organizar melhor essa parte depois, mas agora serei mais direto.
         const Flag SIZE_FLAG = ctx.at(Configuration::SIZE).flag;
-        std::cout << "<! `SIZE_FLAG` definido.\n";
+        // std::cout << "<! `SIZE_FLAG` definido.\n"; // DEBUG
 
         // Caso a flag `-s` ou `--short` estejam presentes na linha de comando.
         if(SIZE_FLAG.value == FlagValue::SHORT)
