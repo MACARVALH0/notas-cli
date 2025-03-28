@@ -38,3 +38,6 @@ data/
 *.exe
 *.out
 *.app
+
+# Temporary file
+temp.txt
