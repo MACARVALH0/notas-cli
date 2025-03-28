@@ -38,7 +38,7 @@ class ErrorMsg
             return *this;
         }
 
-        std::string get() const { return errFlag + stream.str(); }
+        std::string get() const { return errFlag + stream.str() + '\n'; }
 };
 
 
