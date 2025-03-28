@@ -58,7 +58,7 @@ static std::string readFile(const std::string& filename)
  */
 static void setupFlagSettings(const flag_setup_map& flag_set, context_map& ctx)
 {
-    std::cout << "<! Entrando em setupFlagSettings.\n"; // DEBUG
+    // std::cout << "<! Entrando em setupFlagSettings.\n"; // DEBUG
 
     // Encerra a função caso o mapa de flags esteja vazio.
     if(flag_set.empty()){ return; }
@@ -232,7 +232,7 @@ void registerNewEntry(sqlite3* db, int parent_id, const std::vector<Token>& toke
 
 static std::string rewriteLong(sqlite3* db, u_int entry_id)
 {
-    std::cout << "<! Entrando em `rewriteLong`.\n"; // DEBUG
+    // std::cout << "<! Entrando em `rewriteLong`.\n"; // DEBUG
 
     // Captura o atual conteúdo da nota identificada pelo ID encontrado.
     const std::string cur_content = getEntryContent(db, entry_id);
@@ -305,7 +305,7 @@ static std::optional<u_int> getEntryId(const std::vector<Token>& tokens)
 // TODO Reescrever essa função.
 void rewriteEntry(sqlite3* db, int parent_id, const std::vector<Token>& tokens, const flag_setup_map& flag_set)
 {
-    std::cout << "<! Entrando em `rewriteEntry`.\n"; // DEBUG
+    // std::cout << "<! Entrando em `rewriteEntry`.\n"; // DEBUG
     // Capturando o ID da entrada a ser reescrita.
     const std::optional<u_int> opt_entry_id = getEntryId(tokens);
 
@@ -314,12 +314,12 @@ void rewriteEntry(sqlite3* db, int parent_id, const std::vector<Token>& tokens, 
     { throw std::runtime_error("Não foi encontrado um ID de entrada válido.\n"); }
 
     const u_int entry_id = opt_entry_id.value();
-    std::cout << "<! `enty_id` capturado com sucesso.\n"; // DEBUG
+    // std::cout << "<! `enty_id` capturado com sucesso.\n"; // DEBUG
 
     // FIXME Solução provisória para diferenciação de quando há ou não flags na linha de comando.
     if(flag_set.empty())
     {
-        std::cout << "<! Não existem flags definidas na linha de comando.\n"; // DEBUG
+        // std::cout << "<! Não existem flags definidas na linha de comando.\n"; // DEBUG
         const std::string content = rewriteLong(db, entry_id);
 
         std::cout << "Conteúdo da nota: \"" << content << "\".\n";
