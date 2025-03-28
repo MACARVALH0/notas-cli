@@ -117,8 +117,7 @@ static void newEntryLong(sqlite3* db, int parent_id)
     std::string command = "notepad.exe " + filename;
 
     StartNotepad(command);
-
-    std::cout << "<! Handle fechado com sucesso.\n";
+    // std::cout << "<! Handle fechado com sucesso.\n"; // DEBUG
 
     // Lê o conteúdo do arquivo temporário.
     const std::string& entry_text = readFile(filename);
@@ -150,7 +149,7 @@ static void newEntryLong(sqlite3* db, int parent_id)
 // FIXME Refatorar esta função para adequar ao padrão definido na operação de REWRITE.
 static void newEntryShort(sqlite3*db, int parent_id, const std::string& entry_text)
 {
-    std::cout << "<! Entrou com sucesso em `newEntryShort`.\n";
+    // std::cout << "<! Entrou com sucesso em `newEntryShort`.\n"; // DEBUG
 
     if(entry_text.empty())
     {
@@ -160,7 +159,7 @@ static void newEntryShort(sqlite3*db, int parent_id, const std::string& entry_te
 
     else
     {
-        std::cout << "<! Executando db_WriteNote.\n";
+        // std::cout << "<! Executando db_WriteNote.\n"; // DEBUG
         if(!db_WriteNote(db, parent_id, entry_text))
         {
             throw std::runtime_error("Houve um problema na tentativa de adicionar a nota ao banco de dados.\n");
@@ -171,7 +170,7 @@ static void newEntryShort(sqlite3*db, int parent_id, const std::string& entry_te
 // FIXME Precisa de refatoração.
 void registerNewEntry(sqlite3* db, int parent_id, const std::vector<Token>& tokens, const flag_setup_map& flag_set)
 {
-    std::cout << "<! Sucesso ao entrar em `registerNewEntry`.\n";
+    // std::cout << "<! Sucesso ao entrar em `registerNewEntry`.\n"; // DEBUG
 
     if(flag_set.empty())
     {
@@ -379,29 +378,29 @@ void showHelpMenu()
     std::cout << "\nLista de comandos disponíveis:\n\n";
     std::cout << 
     R"(
-        NEW     | Entra no modo de escrita de uma nova nota sob a última palavra-chave.
-        REWRITE | Entra no modo de reescria de uma nota a partir do seu ID.
-        DELETE  | Deleta uma ou mais notas.
-        HELP    | Exibe interface de apoio.
-        EXIT    | Sai do escopo da palavra-chave.
+    NEW     | Entra no modo de escrita de uma nova nota sob a última palavra-chave.
+    REWRITE | Entra no modo de reescria de uma nota a partir do seu ID.
+    DELETE  | Deleta uma ou mais notas.
+    HELP    | Exibe interface de apoio.
+    EXIT    | Sai do escopo da palavra-chave.
 
-        Uso:
+    Uso:
 
-        $ NEW <-l>;
-        -   `NEW` -> Nova entrada curta, escrita direto no terminal.
-        -   `NEW -l` -> Nova entrada longa, abre o bloco de notas.
+    $ NEW <-l>;
+    -   `NEW` -> Nova entrada curta, escrita direto no terminal.
+    -   `NEW -l` -> Nova entrada longa, abre o bloco de notas.
 
-        $ REWRITE [id] <-l>;
-        -   `REWRITE 13 -l` -> Nova entrada longa, abre o bloco de notas.
+    $ REWRITE [id] <-l>;
+    -   `REWRITE 13 -l` -> Nova entrada longa, abre o bloco de notas.
 
-        $ DELETE [...id];
-        -   `DELETE 12, 15, 26, ...` -> Deleta as notas de ids 12, 15 e 26.
+    $ DELETE [...id];
+    -   `DELETE 12, 15, 26, ...` -> Deleta as notas de ids 12, 15 e 26.
 
-        $ HELP;
-        -   `HELP` -> Exibe a interface de apoio. Não recebe argumentos.
+    $ HELP;
+    -   `HELP` -> Exibe a interface de apoio. Não recebe argumentos.
 
-        $ EXIT;
-        -   `EXIT` -> Sai do escopo da palavra-chave.
+    $ EXIT;
+    -   `EXIT` -> Sai do escopo da palavra-chave.
     )";
     
     std::cout << "\n";

@@ -114,8 +114,8 @@ void processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db)
         break;
 
         //////////////////// EXIT: Operação de sair do contexto da palavra-chave atual.
-        // FIXME Atualmente inalcançável neste ponto do código.
-        case EXIT_op: std::cout << "Encerrando interface da palavra-chave `" << keyword.name << "`.\n";
+        // FIXME Atualmente sem utilidade prática neste ponto do código.
+        case EXIT_op: std::cout << "<! Encerrando interface da palavra-chave `" << keyword.name << "` (Não tá de verdade...).\n";
         break;
 
         default: std::cerr << "<# Digite o nome de uma operação válida.\n";

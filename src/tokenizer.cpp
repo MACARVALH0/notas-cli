@@ -12,17 +12,6 @@ static int col(const std::string::iterator& line_start, const std::string::itera
 static void to_initial(std::string& buffer, OpTokenType& state)
 { buffer.clear(); state = OpTokenType::INITIAL; };
 
-template <typename Iterator, typename ...Args>
-static void log_err(std::string& line, Iterator it, Args... args)
-{
-    const int pos = col(line, it);
-    std::cerr  << "<# ";
-    (std::cerr << ... << args) << "\n";
-    std::cerr << " (pos. " << pos << ")\n";
-}
-static void log_err(const std::string& err)
-{ std::cerr << "<# " << err; }
-
 
 /**
  * @brief Processa a situação de caso inicial/padrão do tokenizador.
@@ -168,7 +157,7 @@ static std::string processStringCase(std::string& line, std::string::iterator& i
 */
 std::vector<Token> tokenize(std::string& line)
 {
-    std::cout << "\n<! Iniciando tokenizador do comando.\n";
+    // std::cout << "\n<! Iniciando tokenizador do comando.\n"; // DEBUG
 
     // Vetor que armazenará os tokens gerados.
     std::vector<Token> tokens{};
@@ -241,6 +230,6 @@ std::vector<Token> tokenize(std::string& line)
         throw std::runtime_error(err.get());
     }
 
-    std::cout << "<! A função do tokenizador foi concluída com sucesso.\n";
+    // std::cout << "<! A função do tokenizador foi concluída com sucesso.\n"; // DEBUG
     return tokens;
 }

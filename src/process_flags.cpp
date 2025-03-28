@@ -43,7 +43,7 @@ flag_setup_map getFlagSetup(std::vector<Token>& tokens)
 {
     // Caso não hajam outros tokens na linha de comando.
     if(tokens.empty()){ return flag_setup_map{}; }
-    else{ std::cout << "<! A lista de tokens de operação não está vazia.\n";} // DEBUG
+    // else{ std::cout << "<! A lista de tokens de operação não está vazia.\n";} // DEBUG
 
 
     // Define o objeto de set de flags.
@@ -79,20 +79,14 @@ flag_setup_map getFlagSetup(std::vector<Token>& tokens)
                     // Declara a flag baseado na regra testada.
                     const Flag flag(rule.value, flag_argument);
 
-                    std::cout << "<! (process_flags.cpp > getFlagSetup) Adicionando um novo elemento ao `flag_set`.\n";
+                    // std::cout << "<! (process_flags.cpp > getFlagSetup) Adicionando um novo elemento ao `flag_set`.\n"; // DEBUG
                     // Adiciona a flag atual ao conjunto de FlagSet.
                     set.setFlag(flag, rule.config_name);
 
                     tokens.erase(token_it);
                 }
 
-                else
-                {
-                    ErrorMsg err;
-                    err << "A flag `" << token_it->content << "` é inválida ou não existe neste contexto.\n";
-                    std::cerr << err.get();
-                    // throw std::runtime_error(err.get()); // Off For debug
-                }
+                else continue;
             }
         }
     }
