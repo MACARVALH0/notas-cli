@@ -9,7 +9,7 @@ static std::string readFile(const std::string& filename)
     if(!file)
     {
         ErrorMsg err;
-        err << "Não foi possível abrir o arquivo `" << filename << "`.\n";
+        err << "Não foi possível abrir o arquivo `" << filename << "`.";
         throw std::runtime_error(err.get());
     }
 
@@ -337,7 +337,7 @@ void rewriteEntry(sqlite3* db, int parent_id, const std::vector<Token>& tokens, 
 
     // Atribui as flags às suas respectivas configurações.
     setupFlagSettings(flag_set, ctx); // TODO Consertar interação de `setupFlagSettings` com o novo tipo de `ctx`.
-    std::cout << "<! setupFlagSettings` executado com sucesso.\n"; // DEBUG
+    // std::cout << "<! setupFlagSettings` executado com sucesso.\n"; // DEBUG
 
     const Flag SIZE_FLAG = ctx.at(Configuration::SIZE).flag;
 
@@ -390,12 +390,12 @@ void deleteEntry(sqlite3* db, const std::vector<Token>& tokens, const flag_setup
 }
 
 
-void ShowHelpMenu()
+void showHelpMenu()
 {
-    std::cout << "\nLista de comandos dispon�veis:\n\n";
+    std::cout << "\nLista de comandos disponíveis:\n\n";
     std::cout << 
     R"(
-        NEW     | Entra no modo de escrita de uma nova nota sob a �ltima palavra-chave.
+        NEW     | Entra no modo de escrita de uma nova nota sob a última palavra-chave.
         REWRITE | Entra no modo de reescria de uma nota a partir do seu ID.
         DELETE  | Deleta uma ou mais notas.
         HELP    | Exibe interface de apoio.
@@ -414,12 +414,11 @@ void ShowHelpMenu()
         -   `DELETE 12, 15, 26, ...` -> Deleta as notas de ids 12, 15 e 26.
 
         $ HELP;
-        -   `HELP` -> Exibe a interface de apoio. N�o recebe argumentos.
+        -   `HELP` -> Exibe a interface de apoio. Não recebe argumentos.
 
         $ EXIT;
         -   `EXIT` -> Sai do escopo da palavra-chave.
     )";
     
     std::cout << "\n";
-
 }

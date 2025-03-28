@@ -4,7 +4,7 @@
 
 void processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db)
 {
-    std::cout << "<! Iniciando `processTokens`.\n"; // DEBUG
+    // std::cout << "<! Iniciando `processTokens`.\n"; // DEBUG
 
     // 1. Captura o tipo de operação a ser realizada baseado no conteúdo do primeiro token da lista.
     const Operation op = getOperation(tokens[0].content);
@@ -13,17 +13,17 @@ void processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db)
     if(tokens[0].type != OpTokenType::IDENTIFIER || op == UNKNOWN_op)
     {
         ErrorMsg err;
-        err << "O comando `" << tokens[0].content << "` não é válido ou não existe.\n";
+        err << "O comando `" << tokens[0].content << "` não é válido ou não existe.";
         throw std::runtime_error(err.get());
     }
 
     // 3. Organiza tokens de operação (sem o nome da operação, ou seja, sem o primeiro item).
     std::vector<Token> op_tokens(tokens.begin()+1, tokens.end()); 
-    std::cout << "<! `op_tokens` definido.\n"; // DEBUG
+    // std::cout << "<! `op_tokens` definido.\n"; // DEBUG
 
     // 4. Recebe lista de configurações de flags definidas.
     flag_setup_map flag_setup = getFlagSetup(op_tokens);
-    std::cout << "<! `flag_setup` definido.\n"; // DEBUG
+    // std::cout << "<! `flag_setup` definido.\n"; // DEBUG
 
     // 5. Executa a operação adequada baseado em `Operation op`.
     switch(op)
@@ -41,19 +41,19 @@ void processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db)
                 if(!keyword.exists())
                 {
                     ErrorMsg err;
-                    err << "Não foi possível registrar a keyword " << keyword.name << ".\n";
+                    err << "Não foi possível registrar a keyword " << keyword.name << ".";
                     throw std::runtime_error(err.get());
                 }
             }
 
-            std::cout << "<! Iniciando `registerNewEntry`.\n"; // DEBUG
+            // std::cout << "<! Iniciando `registerNewEntry`.\n"; // DEBUG
             
             // 2. Tentativa de executar a operação de criação de registro.
             try { registerNewEntry(db, keyword.id, tokens, flag_setup); }
             
             catch(const std::exception& err)
             {
-                std::cerr << err.what();// << '\n';
+                std::cerr << err.what();
                 // TODO Maybe deal with deleting keyword register in database if it was its first entry and it failed.
                 return;
             }
@@ -108,6 +108,17 @@ void processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db)
             }
 
         break;
+
+        //////////////////// HELP: Operação de exibir menu de auxílio para uso.
+        case HELP_op: showHelpMenu();
+        break;
+
+        //////////////////// EXIT: Operação de sair do contexto da palavra-chave atual.
+        // FIXME Atualmente inalcançável neste ponto do código.
+        case EXIT_op: std::cout << "Encerrando interface da palavra-chave `" << keyword.name << "`.\n";
+        break;
+
+        default: std::cerr << "<# Digite o nome de uma operação válida.\n";
     }
 }
     

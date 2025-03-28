@@ -15,5 +15,4 @@ void deleteEntry(sqlite3* db, const std::vector<Token>& tokens, const flag_setup
 
 void showHelpMenu();
 
-
 #endif

@@ -19,7 +19,7 @@ void startKeywordInterface(sqlite3* db, Keyword& keyword)
     // Mapeia as entradas em pares chave-valor no padrão id-título.
     entry_map entries = keyword.exists() ? getKeywordResults(db, keyword.id) : entry_map{};
 
-    std::cout << "< Iniciando interface para a palavra-chave `" << keyword.name << "` (id " << keyword.id << ").\n";
+    // std::cout << "< Iniciando interface para a palavra-chave `" << keyword.name << "` (id " << keyword.id << ").\n"; // DEBUG
     std::string command_input = "";
 
     while(true)
@@ -35,11 +35,10 @@ void startKeywordInterface(sqlite3* db, Keyword& keyword)
         try
         {
             std::vector<Token> tokens = tokenize(command_input);
-
-            // Debug: Exibe tokens encontrados.    
+  
             // TODO: Adicionar um filtro de exclusão de tokens repetidos (talvez).
             // Talvez mudar a estrutura de dados para uma que não aceite repetições...
-            DEBUG_showTokens(tokens);
+            // DEBUG_showTokens(tokens);
 
             processTokens(keyword, tokens, db);
 
