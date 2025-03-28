@@ -118,13 +118,12 @@ static void newEntryLong(sqlite3* db, int parent_id)
 
     StartNotepad(command);
 
-
     std::cout << "<! Handle fechado com sucesso.\n";
 
     // Lê o conteúdo do arquivo temporário.
     const std::string& entry_text = readFile(filename);
 
-    // std::cout << "<! Conteúdo do arquivo de texto capturdo com sucesso.\n"; // DEBUG
+    // std::cout << "<! Conteúdo do arquivo de texto capturado com sucesso.\n"; // DEBUG
 
     if(entry_text.empty() || entry_text == default_insert)
     {
