@@ -96,7 +96,7 @@ std::vector<Token> tokenize(std::string& line);
 /**
  * @brief Processa operações específicas de cada comando.
  */
-void processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db);
+int processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db);
 
 
 void StartNotepad(std::string& command);

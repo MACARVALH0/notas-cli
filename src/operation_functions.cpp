@@ -309,6 +309,9 @@ void rewriteEntry(sqlite3* db, int parent_id, const std::vector<Token>& tokens, 
 
         rewrite_Save(db, entry_id, content);
 
+        if(!DeleteFileW(L"temp.txt"))
+        { std::cerr << "<# Não foi possível excluir o arquivo temporário."; }
+
         return;
     }
 
@@ -327,6 +330,12 @@ void rewriteEntry(sqlite3* db, int parent_id, const std::vector<Token>& tokens, 
     const std::string content = rewrite_getContent(db, entry_id, SIZE_FLAG);
 
     rewrite_Save(db, entry_id, content);
+
+    if(SIZE_FLAG.value == FlagValue::LONG)
+    {
+        if(!DeleteFileW(L"temp.txt"))
+        { std::cerr << "<# Não foi possível excluir o arquivo temporário."; }
+    }
 }
 
 

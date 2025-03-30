@@ -2,7 +2,7 @@
 #include "operation_functions.hpp"
 #include "process_flags.hpp"
 
-void processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db)
+int processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db)
 {
     // std::cout << "<! Iniciando `processTokens`.\n"; // DEBUG
 
@@ -55,7 +55,6 @@ void processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db)
             {
                 std::cerr << err.what();
                 // TODO Maybe deal with deleting keyword register in database if it was its first entry and it failed.
-                return;
             }
 
         break;
@@ -77,10 +76,7 @@ void processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db)
                 { rewriteEntry(db, keyword.id, tokens, flag_setup); }
 
                 catch(std::runtime_error& err)
-                {
-                    std::cerr << err.what();
-                    return;
-                }
+                { std::cerr << err.what(); }
             }
 
         break;
@@ -101,10 +97,7 @@ void processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db)
                 try{ deleteEntry(db, tokens, flag_setup); }
 
                 catch(std::runtime_error& err)
-                {
-                    std::cerr << err.what();
-                    return;
-                }
+                { std::cerr << err.what(); }
             }
 
         break;
@@ -115,11 +108,15 @@ void processTokens(Keyword& keyword, std::vector<Token>& tokens, sqlite3* db)
 
         //////////////////// EXIT: Operação de sair do contexto da palavra-chave atual.
         // FIXME Atualmente sem utilidade prática neste ponto do código.
-        case EXIT_op: std::cout << "<! Encerrando interface da palavra-chave `" << keyword.name << "` (Não tá de verdade...).\n";
+        case EXIT_op:
+            std::cout << "<! Deixando o contexto da palavra-chave `" << keyword.name << "`.\n";
+            return 0;
         break;
 
         default: std::cerr << "<# Digite o nome de uma operação válida.\n";
     }
+
+    return 1;
 }
     
 

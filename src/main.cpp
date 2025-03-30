@@ -40,7 +40,10 @@ void startKeywordInterface(sqlite3* db, Keyword& keyword)
             // Talvez mudar a estrutura de dados para uma que não aceite repetições...
             // DEBUG_showTokens(tokens);
 
-            processTokens(keyword, tokens, db);
+            // Caso a função retorne zero, a operação de saída de contexto foi acionada; encerra o loop.
+            if(!processTokens(keyword, tokens, db))
+            { break; }
+            
 
             entries = getKeywordResults(db, keyword.id);
         }
