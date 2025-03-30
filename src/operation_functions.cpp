@@ -49,8 +49,6 @@ static std::string readFile(const std::string& filename)
 }
 
 
-
-
 /**
  * @brief A função universal de configuração contextual de flags envolvidas na operação, seja de escrita (NEW), reescrita (REWRITE), etc.
  * @param flag_set O mapa de itens configuração-flag recuperados da linha de comando.
@@ -58,20 +56,8 @@ static std::string readFile(const std::string& filename)
  */
 static void setupFlagSettings(const flag_setup_map& flag_set, context_map& ctx)
 {
-    // std::cout << "<! Entrando em setupFlagSettings.\n"; // DEBUG
-
     // Encerra a função caso o mapa de flags esteja vazio.
     if(flag_set.empty()){ return; }
-
-    // DEBUG
-    // std::cout << "\n<! Elementos contidos em `flag_set`:\n";
-    // auto set_it = flag_set.begin();
-    // while (set_it != flag_set.end())
-    // {
-    //     std::cout << "{ Configuração: " << toString_Configuration(set_it->first) << ", Flag: " << "[ algum FlagValue ]" << " }\n";
-    //     set_it++;
-    // }
-    // std::cout << "<! Laço concluído!\n";
     
     auto ctx_it = ctx.begin();
 
@@ -110,19 +96,14 @@ static void newEntryLong(sqlite3* db, int parent_id)
     const std::string filename = "temp.txt";
     std::string default_insert = "\n< Edite aqui o conteúdo da nota.\n";
 
-    // std::cout << "<! Abrindo o arquivo de edição de texto e adicionando o texto placeholder.\n"; // DEBUG
-
     // Captura a informação de processo do bloco de notas para lidar com os handles.
     std::cout << "< Escreva o conteúdo da nota no editor de texto.\n";
     std::string command = "notepad.exe " + filename;
 
     StartNotepad(command);
-    // std::cout << "<! Handle fechado com sucesso.\n"; // DEBUG
 
     // Lê o conteúdo do arquivo temporário.
     const std::string& entry_text = readFile(filename);
-
-    // std::cout << "<! Conteúdo do arquivo de texto capturado com sucesso.\n"; // DEBUG
 
     if(entry_text.empty() || entry_text == default_insert)
     {
@@ -149,8 +130,6 @@ static void newEntryLong(sqlite3* db, int parent_id)
 // FIXME Refatorar esta função para adequar ao padrão definido na operação de REWRITE.
 static void newEntryShort(sqlite3*db, int parent_id, const std::string& entry_text)
 {
-    // std::cout << "<! Entrou com sucesso em `newEntryShort`.\n"; // DEBUG
-
     if(entry_text.empty())
     {
         std::cout << "< A nota vazia não será adicionada ao banco dados.\n";
@@ -159,7 +138,6 @@ static void newEntryShort(sqlite3*db, int parent_id, const std::string& entry_te
 
     else
     {
-        // std::cout << "<! Executando db_WriteNote.\n"; // DEBUG
         if(!db_WriteNote(db, parent_id, entry_text))
         {
             throw std::runtime_error("Houve um problema na tentativa de adicionar a nota ao banco de dados.\n");
@@ -170,8 +148,6 @@ static void newEntryShort(sqlite3*db, int parent_id, const std::string& entry_te
 // FIXME Precisa de refatoração.
 void registerNewEntry(sqlite3* db, int parent_id, const std::vector<Token>& tokens, const flag_setup_map& flag_set)
 {
-    // std::cout << "<! Sucesso ao entrar em `registerNewEntry`.\n"; // DEBUG
-
     if(flag_set.empty())
     {
         /*
@@ -190,11 +166,9 @@ void registerNewEntry(sqlite3* db, int parent_id, const std::vector<Token>& toke
         };
 
         setupFlagSettings(flag_set, ctx);
-        // std::cout << "<! setupFlagSettings` executado com sucesso.\n"; // DEBUG
 
         // FIXME Talvez faça sentido organizar melhor essa parte depois, mas agora serei mais direto.
         const Flag SIZE_FLAG = ctx.at(Configuration::SIZE).flag;
-        // std::cout << "<! `SIZE_FLAG` definido.\n"; // DEBUG
 
         // Caso a flag `-s` ou `--short` estejam presentes na linha de comando.
         if(SIZE_FLAG.value == FlagValue::SHORT)
@@ -212,11 +186,8 @@ void registerNewEntry(sqlite3* db, int parent_id, const std::vector<Token>& toke
 }
 
 
-
 static std::string rewriteLong(sqlite3* db, u_int entry_id)
 {
-    // std::cout << "<! Entrando em `rewriteLong`.\n"; // DEBUG
-
     // Captura o atual conteúdo da nota identificada pelo ID encontrado.
     const std::string cur_content = getEntryContent(db, entry_id);
 
@@ -233,6 +204,7 @@ static std::string rewriteLong(sqlite3* db, u_int entry_id)
 
     return temp_file_content;
 }
+
 
 static void rewrite_Save(sqlite3* db, u_int entry_id, const std::string& content)
 {
@@ -288,7 +260,6 @@ static std::optional<u_int> getEntryId(const std::vector<Token>& tokens)
 // TODO Reescrever essa função.
 void rewriteEntry(sqlite3* db, int parent_id, const std::vector<Token>& tokens, const flag_setup_map& flag_set)
 {
-    // std::cout << "<! Entrando em `rewriteEntry`.\n"; // DEBUG
     // Capturando o ID da entrada a ser reescrita.
     const std::optional<u_int> opt_entry_id = getEntryId(tokens);
 
@@ -297,12 +268,10 @@ void rewriteEntry(sqlite3* db, int parent_id, const std::vector<Token>& tokens, 
     { throw std::runtime_error("Não foi encontrado um ID de entrada válido.\n"); }
 
     const u_int entry_id = opt_entry_id.value();
-    // std::cout << "<! `enty_id` capturado com sucesso.\n"; // DEBUG
 
     // FIXME Solução provisória para diferenciação de quando há ou não flags na linha de comando.
     if(flag_set.empty())
     {
-        // std::cout << "<! Não existem flags definidas na linha de comando.\n"; // DEBUG
         const std::string content = rewriteLong(db, entry_id);
 
         std::cout << "Conteúdo da nota: \"" << content << "\".\n";
@@ -323,7 +292,6 @@ void rewriteEntry(sqlite3* db, int parent_id, const std::vector<Token>& tokens, 
 
     // Atribui as flags às suas respectivas configurações.
     setupFlagSettings(flag_set, ctx); // TODO Consertar interação de `setupFlagSettings` com o novo tipo de `ctx`.
-    // std::cout << "<! setupFlagSettings` executado com sucesso.\n"; // DEBUG
 
     const Flag SIZE_FLAG = ctx.at(Configuration::SIZE).flag;
 

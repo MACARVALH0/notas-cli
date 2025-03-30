@@ -2,7 +2,6 @@
 
 void DEBUG_showTokens(const std::vector<Token>& tokens)
 {
-     // Debug
     std::cout << "\nToken list:\n";
     size_t max_size_a = 12; // Tamanho máximo que deve ser mantido entre a string do tipo de token e o caractere de separação `|`.
     for(Token token : tokens)
@@ -115,9 +114,6 @@ void StartNotepad(std::string& command)
 
     STARTUPINFOA startup_info = { sizeof(STARTUPINFOA) };
     PROCESS_INFORMATION process_info  {};
-
-    // ZeroMemory(&startup_info, sizeof(startup_info));
-    // startup_info.cb = sizeof startup_info; //  `sizeof` as an operator is possible when its operand is a variable and not a type.
 
     if( !CreateProcessA
     (

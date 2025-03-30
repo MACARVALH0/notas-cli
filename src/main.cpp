@@ -1,18 +1,6 @@
-#include <locale>
-#include <locale.h>
-
-#include <iostream>
-#include <string>
-#include <vector>
-#include <map>
-#include <fstream>
-#include <algorithm>
-#include <stdexcept>
-#include <cstdlib>
-#include <memory>
-
 #include "utils.hpp"
 #include "db_ops.hpp"
+
 
 void startKeywordInterface(sqlite3* db, Keyword& keyword)
 {
@@ -37,20 +25,17 @@ void startKeywordInterface(sqlite3* db, Keyword& keyword)
             std::vector<Token> tokens = tokenize(command_input);
   
             // TODO: Adicionar um filtro de exclusão de tokens repetidos (talvez).
-            // Talvez mudar a estrutura de dados para uma que não aceite repetições...
-            // DEBUG_showTokens(tokens);
 
             // Caso a função retorne zero, a operação de saída de contexto foi acionada; encerra o loop.
             if(!processTokens(keyword, tokens, db))
             { break; }
-            
 
+            // Captura resultados de busca da palavra-chave novamente na variável de entrada.
             entries = getKeywordResults(db, keyword.id);
         }
 
         catch(const std::exception& e)
         { std::cerr << e.what() << '\n'; }
-        
     }
 }
 
@@ -99,8 +84,7 @@ int main()
          // Lê o input na linha de comando e salva em `kw_name`.
         std::string kw_name = "";   // Palavra-chave de busca.
         std::getline(std::cin, kw_name);
-
-        // std::cout << "\n"; // Adiciona quebra de linha à stream de saída, para organização.
+        std::cout << "\n"; // Adiciona quebra de linha à stream de saída, para organização.
         
         // Sanitiza o input limpando espaços adjacentes ao texto.
         std::string trimmed_kw_name = trim(kw_name); 

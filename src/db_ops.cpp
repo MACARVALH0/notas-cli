@@ -45,6 +45,7 @@ static int setupDbTables(sqlite3* db)
     return 1;
 }
 
+
 db_ptr getDatabasePtr(const std::string& path)
 {
     sqlite3* db_raw = nullptr;
@@ -91,7 +92,6 @@ int getKeywordId(sqlite3* db, const std::string& keyword)
 }
 
 
-
 entry_map getKeywordResults(sqlite3* db, int keyword_id)
 {
     const std::string query = "SELECT id, content FROM results WHERE parent_id = ?";
@@ -121,6 +121,7 @@ entry_map getKeywordResults(sqlite3* db, int keyword_id)
 
     return results;
 }
+
 
 std::string getEntryContent(sqlite3* db, u_int entry_id)
 {
@@ -175,7 +176,6 @@ int db_DefineKeyword(sqlite3* db, const std::string& keyword)
 }
 
 
-
 int db_WriteNote(sqlite3* db, int parent_id, const std::string& txt)
 {
     // Setting up query and statement pointers.
@@ -201,7 +201,6 @@ int db_WriteNote(sqlite3* db, int parent_id, const std::string& txt)
 }
 
 
-
 int db_RewriteNote(sqlite3* db, u_int entry_id, const std::string& txt)
 {
     const std::string query = "UPDATE results SET content = ? WHERE id = ?";
@@ -222,7 +221,6 @@ int db_RewriteNote(sqlite3* db, u_int entry_id, const std::string& txt)
     // Retornando o número de linhas alteradas.
     return sqlite3_changes(db);
 }
-
 
 
 int db_DeleteNote(sqlite3* db, u_int entry_id)
