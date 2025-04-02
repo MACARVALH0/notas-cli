@@ -1,8 +1,6 @@
 #include "utils.hpp"
 #include "process_flags.hpp"
 
-
-
 /**
  *  @brief      Retorna um elemento (bool/string) para ocupar o espaço de "argumento" da flag.
  *  @param rule Elemento `FlagRule` cuja regra bateu com a busca.

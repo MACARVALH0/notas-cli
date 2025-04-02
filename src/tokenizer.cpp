@@ -3,9 +3,6 @@
 static bool bisalnum(char c)
 { return std::isalnum(static_cast<unsigned char>(c)) != 0; };
 
-static bool contains(std::unordered_set<char>& set, char c)
-{ return set.count(c) > 0; };
-
 static int col(const std::string::iterator& line_start, const std::string::iterator& it)
 { return std::distance(line_start, it); };
 

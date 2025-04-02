@@ -16,8 +16,6 @@
 #include "db_ops.hpp"
 
 
-
-
 class ErrorMsg
 {
     std::ostringstream stream;
@@ -42,29 +40,7 @@ class ErrorMsg
 };
 
 
-template <typename T>
-inline bool includes(const std::vector<T>& v, const T& element)
-{ return std::find(v.begin(), v.end(), element) != v.end(); }
-
-
 void DEBUG_showTokens(const std::vector<Token>& tokens);
-
-
-template <typename T>
-std::vector<T> splice(std::vector<T> v, size_t start_index, size_t count)
-{
-    if(start_index >= v.size()){ return {}; }
-
-    size_t end = std::min(start_index + count, v.size());
-    auto start_iterator = v.begin()+start_index;
-    auto end_iterator = v.begin()+end;
-
-    std::vector<T> removed_elements(start_iterator, end_iterator);
-
-    v.erase(start_iterator, end_iterator);
-
-    return removed_elements;
-};
 
 
 
