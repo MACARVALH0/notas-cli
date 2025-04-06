@@ -29,7 +29,12 @@ Uma aplicação de anotações no terminal que valoriza agilidade e discrição.
 >delete [id]
 >```
 
->**4. Exibir ajuda**
+>**4. Sair do contexto**
+>```bash
+>exit
+>```
+
+>**5. Exibir ajuda**
 >```bash
 >help
 >```
